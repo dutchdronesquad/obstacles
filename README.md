@@ -42,9 +42,3 @@ https://obstacles.trackdraw.app/multigp/large-top-multigp.webp
 Use `/<organization>/<filename>.webp`. These are stable, shared URLs: compatible artwork improvements update all consumers automatically. Changes requiring different rendering must use a new filename and keep the old file available. No asset version or consumer version bump is needed for compatible updates.
 
 Runtime filenames retain their original case. Consumers need no API key. Only WebP runtime textures are uploaded; source GLBs and maintenance PNGs remain in Git. Browser and CDN caching is five minutes (`public, max-age=300, must-revalidate`), so updates need no cache purge. Custom Cloudflare cache rules must not override this TTL. Uploads overwrite matching keys but do not delete other bucket objects.
-
-## Publishing
-
-Push reviewed changes to `main` to publish automatically. To retry, use **Actions → Publish assets → Run workflow**. No release or tag is required.
-
-See [Cloudflare setup and publishing](docs/cloudflare-setup.md) for bucket configuration, the `production` environment secrets, troubleshooting and manual commands.
