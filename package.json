@@ -1,0 +1,20 @@
+{
+  "name": "@trackdraw/obstacles",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "assets:multigp:extract": "node scripts/extract_glb_textures.mjs",
+    "assets:multigp:optimize": "node scripts/optimize_multigp_textures.mjs",
+    "assets:multigp:refresh": "npm run assets:multigp:extract && npm run assets:multigp:optimize",
+    "test": "node --test",
+    "release:upload": "node scripts/upload-release.mjs"
+  },
+  "devDependencies": {
+    "sharp": "0.35.4",
+    "wrangler": "4.141.0"
+  }
+}
