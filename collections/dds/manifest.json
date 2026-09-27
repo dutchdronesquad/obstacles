@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "dds",
+  "name": "DDS contract example",
+  "status": "example",
+  "author": "TrackDraw contributors",
+  "attribution": "Original diagnostic panel artwork; no club logo or approved club artwork.",
+  "usage": {
+    "terms": "Diagnostic example only. No permission for redistribution of club branding is implied.",
+    "portable": "not-granted"
+  },
+  "textures": [
+    {
+      "id": "diagnostic-gate",
+      "name": "Diagnostic gate",
+      "template": "gate-standard-v1",
+      "panels": {
+        "left": "textures/example-left.webp",
+        "right": "textures/example-right.webp",
+        "top": "textures/example-top.webp"
+      }
+    }
+  ]
+}

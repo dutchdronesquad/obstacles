@@ -2,7 +2,7 @@
 
 Source models, artwork and browser-ready textures for drone racing obstacles, together with the scripts used to maintain them. Assets are grouped by the organization or brand they represent. Each collection documents its sources and maintenance workflow in its own directory.
 
-Available collections: [MultiGP](multigp/README.md).
+Available collections: [MultiGP](collections/multigp/README.md).
 
 ## License and attribution
 
@@ -27,11 +27,11 @@ npm ci
 npm test
 ```
 
-Each collection keeps its source files in `<organization>/source/` and its maintenance images and runtime textures in `<organization>/textures/`. Shared maintenance scripts live in `scripts/`.
+Each collection keeps its source files in `collections/<organization>/source/` and its maintenance images and runtime textures in `collections/<organization>/textures/`. Shared maintenance scripts live in `scripts/`.
 
-Follow the collection's README when updating artwork, review the generated textures and run `npm test`. Collection-specific steps and manually maintained assets are documented there; see the [MultiGP workflow](multigp/README.md) for the first collection.
+Follow the collection's README when updating artwork, review the generated textures and run `npm test`. Collection-specific steps and manually maintained assets are documented there; see the [MultiGP workflow](collections/multigp/README.md) for the first collection.
 
-TrackDraw's current copies stay in place until its separate consumer migration (dutchdronesquad/trackdraw#867); this repo becomes the source for subsequent asset updates.
+TrackDraw consumes the stable hosted texture URLs. Collection discovery is additive; existing consumers do not need to load the new metadata.
 
 ## Hosted URL contract
 
@@ -43,4 +43,8 @@ https://obstacles.trackdraw.app/multigp/large-top-multigp.webp
 
 Use `/<organization>/<filename>.webp`. These are stable, shared URLs: compatible artwork improvements update all consumers automatically. Changes requiring different rendering must use a new filename and keep the old file available. No asset version or consumer version bump is needed for compatible updates.
 
-Runtime filenames retain their original case. Consumers need no API key. Only WebP runtime textures are uploaded; source GLBs and maintenance PNGs remain in Git. Browser and CDN caching is five minutes (`public, max-age=300, must-revalidate`), so updates need no cache purge. Custom Cloudflare cache rules must not override this TTL. Uploads overwrite matching keys but do not delete other bucket objects.
+Runtime filenames retain their original case. Consumers need no API key. Runtime WebP textures, collection manifests and the discovery index are uploaded; source GLBs and maintenance PNGs remain in Git. Browser and CDN caching is five minutes (`public, max-age=300, must-revalidate`), so updates need no cache purge. Custom Cloudflare cache rules must not override this TTL. Uploads overwrite matching keys but do not delete other bucket objects.
+
+## Collection metadata
+
+See the [version 1 collection contract](docs/collection-contract.md) and [DDS diagnostic example](collections/dds/README.md). Run `npm run assets:check` to validate collections before publication. Published collections are discoverable at `/collections.json`; examples remain in Git only.

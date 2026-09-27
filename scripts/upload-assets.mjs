@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Klaas Schoute
 
+import { committedPublicationFiles } from './collections.mjs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
@@ -11,17 +12,7 @@ import { pathToFileURL } from 'node:url';
 export const bucket = 'trackdraw-obstacles';
 export const origin = 'https://obstacles.trackdraw.app';
 
-export function assetFiles() {
-  const ref = 'HEAD';
-  const files = execFileSync('git', ['ls-tree', '-r', '--name-only', ref], { encoding: 'utf8' })
-    .trim().split('\n').filter(file => /^[a-z0-9-]+\/textures\/[^/]+\.webp$/.test(file));
-  if (!files.length) throw new Error('HEAD contains no runtime textures.');
-  return files.map(file => ({
-    file,
-    key: file.replace('/textures/', '/'),
-    bytes: execFileSync('git', ['show', `${ref}:${file}`]),
-  }));
-}
+export const assetFiles = committedPublicationFiles;
 
 async function main() {
   const [flag, ...extra] = process.argv.slice(2);
@@ -35,18 +26,18 @@ async function main() {
   const directory = await mkdtemp(path.join(tmpdir(), 'obstacles-upload-'));
   try {
     for (const [index, asset] of files.entries()) {
-      const file = path.join(directory, `${index}.webp`);
+      const file = path.join(directory, `${index}.asset`);
       await writeFile(file, asset.bytes);
       execFileSync(process.execPath, [
         'node_modules/wrangler/bin/wrangler.js', 'r2', 'object', 'put', `${bucket}/${asset.key}`,
-        '--remote', '--file', file, '--content-type', 'image/webp',
+        '--remote', '--file', file, '--content-type', asset.contentType,
         '--cache-control', 'public, max-age=300, must-revalidate',
       ], { stdio: 'inherit' });
     }
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
-  console.log(`Uploaded ${files.length} textures to stable URLs.`);
+  console.log(`Uploaded ${files.length} files to stable URLs.`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

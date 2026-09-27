@@ -12,12 +12,12 @@ The MultiGP guide is the source reference for obstacle dimensions, construction 
 
 ## Repository Layout
 
-- `multigp/source/multigp-obstacles.glb`
+- `collections/multigp/source/multigp-obstacles.glb`
   - Source GLB containing the imported MultiGP obstacle artwork.
   - Kept outside `public/` so it is not served as a runtime asset.
 - `scripts/extract_glb_textures.mjs`
   - Optional maintenance helper for extracting embedded images from the source GLB.
-- `multigp/textures/`
+- `collections/multigp/textures/`
   - Extracted PNG textures and optimized runtime WebP textures loaded by the 3D preview and flythrough export.
 
 The `src/` paths and application verification commands below refer to the consuming [TrackDraw repository](https://github.com/dutchdronesquad/trackdraw), not this asset repository.
@@ -49,7 +49,7 @@ Use this route when the MultiGP SketchUp source file changes or when new embedde
    - Keep embedded textures included.
    - Export the full obstacle scene unless deliberately isolating a specific source update.
 5. Save the exported file as:
-   - `multigp/source/multigp-obstacles.glb`
+   - `collections/multigp/source/multigp-obstacles.glb`
 
 At this point the Blender route is done. The source GLB should contain the full MultiGP obstacle scene and embedded artwork.
 
@@ -64,16 +64,16 @@ npm run assets:multigp:extract
 By default the script reads:
 
 ```text
-multigp/source/multigp-obstacles.glb
+collections/multigp/source/multigp-obstacles.glb
 ```
 
 and writes:
 
 ```text
-multigp/textures/
+collections/multigp/textures/
 ```
 
-If source PNGs were exported another way, the extraction helper can be skipped. The important part is that `multigp/textures/` contains the runtime WebP filenames referenced by `src/lib/track/elements/catalog.ts`.
+If source PNGs were exported another way, the extraction helper can be skipped. The important part is that `collections/multigp/textures/` contains the runtime WebP filenames referenced by `src/lib/track/elements/catalog.ts`.
 
 ## Runtime Texture Optimization
 
@@ -102,13 +102,13 @@ Current expected runtime textures:
 - `feather-banners-cobranded-multigp-back.webp`
 - `5x10-hurdle-multigp.webp`
 
-If filenames change, either rename the runtime files back to the expected names or update the catalog texture paths. Prefer stable filenames in `multigp/textures/` so saved catalog rendering behavior remains easy to review.
+If filenames change, either rename the runtime files back to the expected names or update the catalog texture paths. Prefer stable filenames in `collections/multigp/textures/` so saved catalog rendering behavior remains easy to review.
 
 ## Verification
 
 After replacing the GLB or textures:
 
-1. If source PNGs need regeneration, run the extractor or otherwise update the texture files in `multigp/textures/`.
+1. If source PNGs need regeneration, run the extractor or otherwise update the texture files in `collections/multigp/textures/`.
 2. Run `npm run assets:multigp:optimize` so runtime textures stay small enough for fast 3D loading.
 3. Start the app and inspect:
    - MultiGP Standard Gate 5x5

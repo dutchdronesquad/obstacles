@@ -29,7 +29,7 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install and test
-        run: npm ci && npm test
+        run: npm ci && npm run assets:check && npm test
       - name: Publish and verify
         run: npm run assets:upload && npm run assets:verify
         env:
