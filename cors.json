@@ -1,19 +1,15 @@
-{
-  "rules": [
-    {
-      "allowed": {
-        "origins": [
-          "*"
-        ],
-        "methods": [
-          "GET",
-          "HEAD"
-        ]
-      },
-      "exposeHeaders": [
-        "ETag"
-      ],
-      "maxAgeSeconds": 86400
-    }
-  ]
-}
+[
+  {
+    "AllowedOrigins": [
+      "*"
+    ],
+    "AllowedMethods": [
+      "GET",
+      "HEAD"
+    ],
+    "ExposeHeaders": [
+      "ETag"
+    ],
+    "MaxAgeSeconds": 86400
+  }
+]

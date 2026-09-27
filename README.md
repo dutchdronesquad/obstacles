@@ -42,7 +42,7 @@ In the Cloudflare account that owns `trackdraw.app`:
 
 1. Under **R2 Object Storage**, create a Standard bucket named **`trackdraw-obstacles`**, using the default jurisdiction (a Western Europe location hint is fine).
 2. Open the bucket's **Settings → Custom Domains → Add**. Connect **`obstacles.trackdraw.app`** and wait until its status is **Active**. Leave the `r2.dev` development URL disabled.
-3. Under **Settings → CORS Policy**, paste the complete contents of [`cors.json`](cors.json). This permits public GET/HEAD from browser viewers on any domain, without credentials.
+3. Under **Settings → CORS Policy**, paste the complete contents of [`cors.json`](cors.json) in the JSON tab (dashboard format; Wrangler uses a different schema). This permits public GET/HEAD from browser viewers on any domain, without credentials.
 4. Copy this account's **Account ID**. In this repository, run `npx wrangler login` and sign into that same account.
 
 Cloudflare references: [custom domains](https://developers.cloudflare.com/r2/buckets/public-buckets/) and [CORS](https://developers.cloudflare.com/r2/buckets/cors/).
