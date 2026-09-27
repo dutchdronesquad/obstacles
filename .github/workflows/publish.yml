@@ -1,0 +1,79 @@
+name: Publish assets
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag (for example v0.1.0)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Validate the release without uploading'
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-assets-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+    steps:
+      - name: Validate release tag
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo '::error::Use a release tag such as v0.1.0.'
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Preview tagged assets
+        run: npm run release:upload -- "$RELEASE_TAG" --dry-run
+      - name: Upload to R2
+        if: github.event_name == 'release' || !inputs.dry_run
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [[ -z "$CLOUDFLARE_ACCOUNT_ID" || -z "$CLOUDFLARE_API_TOKEN" ]]; then
+            echo '::error::Configure the CLOUDFLARE_ACCOUNT_ID repository variable and CLOUDFLARE_API_TOKEN repository secret.'
+            exit 1
+          fi
+          npm run release:upload -- "$RELEASE_TAG"
+      - name: Verify public assets
+        if: github.event_name == 'release' || !inputs.dry_run
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { releaseFiles, origin } from './scripts/upload-release.mjs';
+          for (const asset of releaseFiles(process.env.RELEASE_TAG)) {
+            const response = await fetch(`${origin}/${asset.key}`, {
+              headers: { Origin: 'https://trackdraw.app' },
+              signal: AbortSignal.timeout(30_000),
+            });
+            assert.equal(response.status, 200, asset.key);
+            assert.equal(response.headers.get('content-type'), 'image/webp', asset.key);
+            assert.equal(response.headers.get('access-control-allow-origin'), '*', asset.key);
+            assert.match(response.headers.get('cache-control') ?? '', /immutable/, asset.key);
+            assert.ok(Buffer.from(await response.arrayBuffer()).equals(asset.bytes), asset.key);
+            console.log(`Verified ${asset.key}`);
+          }
+          JS

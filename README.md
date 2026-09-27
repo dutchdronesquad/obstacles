@@ -49,20 +49,34 @@ Cloudflare references: [custom domains](https://developers.cloudflare.com/r2/buc
 
 ## Publish a release
 
-A manual command is sufficient for this small asset library; no CI deployment token is needed. Only publish from the official repository clone. Run from its root:
+Publishing a GitHub release with a `vX.Y.Z` tag automatically runs **Publish assets**: test the tagged files, upload their WebP textures, then verify the public bytes, content type, CORS and cache headers. Pushes and pull requests run asset checks; only a published release uploads to R2. Each release keeps its own immutable URL prefix.
+
+### One-time GitHub configuration
+
+Open this repository's **Settings → Secrets and variables → Actions**:
+
+- Under **Variables**, add `CLOUDFLARE_ACCOUNT_ID` with the account ID that owns `trackdraw-obstacles`.
+- Under **Secrets**, add `CLOUDFLARE_API_TOKEN`. Create a Cloudflare API token with **Account → Workers R2 Storage → Edit**, restricted to the TrackDraw account. This is a Cloudflare API bearer token for Wrangler, not an S3 access-key pair. Never commit the token.
+
+### Publish or retry from GitHub
+
+1. Commit the reviewed asset changes and wait for **Check assets** to pass.
+2. In **Releases → Draft a new release**, create a new `vX.Y.Z` tag on the intended commit and click **Publish release**.
+3. Follow **Actions → Publish assets**. No terminal commands are required.
+
+For an existing release (including `v0.1.0`), open **Actions → Publish assets → Run workflow**, select the default branch, and enter the tag. Leave **Validate the release without uploading** enabled for a credentials-free check, or disable it to upload and verify. Republishing is safe for identical files; the uploader refuses different bytes at an already published URL. GitHub serializes uploads of the same tag and does not cancel an upload already in progress.
+
+The workflow reads **tagged Git objects**, not working-tree textures. It sets `Content-Type: image/webp` and `Cache-Control: public, max-age=31536000, immutable`. Do not edit published objects or move published tags; create a new release for changes. The package is private and is not published to npm.
+
+The terminal remains available as a fallback (do not run it concurrently with a workflow for the same tag):
 
 ```sh
 npm ci
-npm test
 git fetch origin --tags
 export CLOUDFLARE_ACCOUNT_ID='YOUR_TRACKDRAW_ACCOUNT_ID'
 npm run release:upload -- v0.1.0 --dry-run
 npm run release:upload -- v0.1.0
 ```
-
-The command reads the **tagged Git objects**, not working-tree textures, prints SHA-256 checksums and uploads the WebP files to `trackdraw-obstacles`. It sets `Content-Type: image/webp` and `Cache-Control: public, max-age=31536000, immutable`. It skips existing identical files and refuses different content at an existing public URL. Run one publisher at a time; this check is not a concurrent write lock. An interrupted upload can be rerun. Do not edit published objects or move published tags; create a new release for changes.
-
-For a new version: review the texture changes, run the tests, commit and push them, then create and push a new `vX.Y.Z` Git tag and GitHub release. Run the same upload command with that tag. The package is private and is not published to npm.
 
 After uploading, check an actual texture with a browser Origin header:
 
