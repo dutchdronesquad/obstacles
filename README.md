@@ -55,14 +55,14 @@ Every push to `main` runs **Publish assets**: test the committed textures, uploa
 
 ### One-time GitHub configuration
 
-Open this repository's **Settings → Secrets and variables → Actions**:
+Open this repository's **Settings → Environments → production → Environment secrets**:
 
-- Under **Variables**, add `CLOUDFLARE_ACCOUNT_ID` with the account ID that owns `trackdraw-obstacles`.
-- Under **Secrets**, add `CLOUDFLARE_API_TOKEN`. Create a Cloudflare API token with **Account → Workers R2 Storage → Edit**, restricted to the TrackDraw account. This is a Cloudflare API bearer token for Wrangler, not an S3 access-key pair. Never commit the token.
+- Add `CLOUDFLARE_ACCOUNT_ID` with the account ID that owns `trackdraw-obstacles`.
+- Add `CLOUDFLARE_API_TOKEN`. Create a Cloudflare API token with **Account → Workers R2 Storage → Edit**, restricted to the TrackDraw account. This is a Cloudflare API bearer token for Wrangler, not an S3 access-key pair. Never commit the token.
 
 ### Publish or retry from GitHub
 
-Commit and push reviewed texture changes to `main`; **Actions → Publish assets** uploads them automatically. To repopulate an emptied bucket or retry, open **Actions → Publish assets → Run workflow** and disable **Validate assets without uploading**. No terminal is required.
+Commit and push reviewed texture changes to `main`; **Actions → Publish assets** uploads them automatically. To repopulate an emptied bucket or retry, open **Actions → Publish assets → Run workflow** on `main`. No terminal is required. Both automatic and manual runs publish immediately; GitHub dry-run inputs are no longer needed.
 
 The workflow uploads committed HEAD bytes and always refreshes the object's content and cache metadata. It does not rebuild textures during publication; generate and review texture changes before committing them. Public verification uses a cache-busting query; existing browser URLs may still serve the previous texture for up to five minutes. Files are uploaded individually, not as an atomic set.
 

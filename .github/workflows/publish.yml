@@ -4,11 +4,6 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      dry_run:
-        description: 'Validate assets without uploading'
-        default: true
-        type: boolean
 
 permissions:
   contents: read
@@ -20,6 +15,7 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: production
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -30,38 +26,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm test
-      - name: Preview assets
-        run: npm run assets:upload -- --dry-run
-      - name: Upload to R2
-        if: github.event_name == 'push' || !inputs.dry_run
+      - name: Install and test
+        run: npm ci && npm test
+      - name: Publish and verify
+        run: npm run assets:upload && npm run assets:verify
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          if [[ -z "$CLOUDFLARE_ACCOUNT_ID" || -z "$CLOUDFLARE_API_TOKEN" ]]; then
-            echo '::error::Configure the CLOUDFLARE_ACCOUNT_ID repository variable and CLOUDFLARE_API_TOKEN repository secret.'
-            exit 1
-          fi
-          npm run assets:upload
-      - name: Verify public assets
-        if: github.event_name == 'push' || !inputs.dry_run
-        run: |
-          node --input-type=module <<'JS'
-          import assert from 'node:assert/strict';
-          import { createHash } from 'node:crypto';
-          import { assetFiles, origin } from './scripts/upload-assets.mjs';
-          for (const asset of assetFiles()) {
-            const response = await fetch(`${origin}/${asset.key}?verify=${createHash("sha256").update(asset.bytes).digest("hex")}`, {
-              headers: { Origin: 'https://trackdraw.app' },
-              signal: AbortSignal.timeout(30_000),
-            });
-            assert.equal(response.status, 200, asset.key);
-            assert.equal(response.headers.get('content-type'), 'image/webp', asset.key);
-            assert.equal(response.headers.get('access-control-allow-origin'), '*', asset.key);
-            assert.equal(response.headers.get('cache-control'), 'public, max-age=300, must-revalidate', asset.key);
-            assert.ok(Buffer.from(await response.arrayBuffer()).equals(asset.bytes), asset.key);
-            console.log(`Verified ${asset.key}`);
-          }
-          JS

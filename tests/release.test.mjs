@@ -83,3 +83,22 @@ test('stable URLs use committed HEAD bytes and exclude maintenance files', () =>
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+
+test('public verification checks bytes and response headers', async () => {
+  const { verifyAssets } = await import('../scripts/verify-assets.mjs');
+  const files = [{ key: 'multigp/gate.webp', bytes: Buffer.from('texture') }];
+  const headers = {
+    'content-type': 'image/webp',
+    'access-control-allow-origin': '*',
+    'cache-control': 'public, max-age=300, must-revalidate',
+  };
+  await verifyAssets(files, async (url, options) => {
+    assert.match(url, /gate.webp\?verify=[a-f0-9]{64}$/);
+    assert.equal(options.headers.Origin, 'https://trackdraw.app');
+    return new Response('texture', { headers });
+  });
+  await assert.rejects(verifyAssets(files, async () => new Response('wrong bytes', { headers })));
+  await assert.rejects(verifyAssets(files, async () => new Response('texture')));
+  await assert.rejects(verifyAssets(files, async () => new Response(null, { status: 404 })));
+});
