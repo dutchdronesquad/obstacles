@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Klaas Schoute
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';

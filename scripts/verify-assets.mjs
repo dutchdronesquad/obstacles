@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Klaas Schoute
+
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';

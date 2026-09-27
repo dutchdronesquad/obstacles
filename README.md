@@ -14,7 +14,9 @@ Asset sources, credits and any known usage terms belong in each collection's REA
 
 ### Software
 
-The maintenance scripts imported from [TrackDraw](https://github.com/dutchdronesquad/trackdraw/tree/9a04180f3c0a0cdf85de8a8599031cf7fd994d4a) retain their [AGPL-3.0 license](LICENSE-AGPL-3.0.txt). This software license does not cover third-party artwork, branding or designs. Hosting assets here or using them with `@trackdraw/viewer` does not place them under the viewer's software license.
+The scripts in `scripts/` and their tests in `tests/` are available under the [MIT license](LICENSE-MIT.txt). The extraction and optimization scripts originated in [TrackDraw](https://github.com/dutchdronesquad/trackdraw/tree/9a04180f3c0a0cdf85de8a8599031cf7fd994d4a) and are offered here under MIT with the copyright holder's permission. TrackDraw itself retains its own license.
+
+The MIT license applies to this software, not to the source models, textures, third-party artwork, branding or designs in the asset collections. Hosting these materials here or using them with `@trackdraw/viewer` does not change their rights or licensing terms.
 
 ## Maintenance
 

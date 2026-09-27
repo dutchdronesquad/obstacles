@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Klaas Schoute
+
 import fs from "node:fs/promises";
 import path from "node:path";
 

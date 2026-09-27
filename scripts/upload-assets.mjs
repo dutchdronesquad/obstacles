@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Klaas Schoute
+
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
