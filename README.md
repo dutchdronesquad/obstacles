@@ -1,6 +1,6 @@
 # TrackDraw obstacle assets
 
-Source artwork, maintenance scripts and versioned runtime textures for recognizable race obstacles. Each represented organization has its own directory; the first is [MultiGP](multigp/README.md).
+Source artwork, maintenance scripts and shared runtime textures for recognizable race obstacles. Each represented organization has its own directory; the first is [MultiGP](multigp/README.md).
 
 ## Attribution and rights
 
@@ -22,19 +22,21 @@ npm test
 - `scripts/extract_glb_textures.mjs`: extract the embedded GLB artwork.
 - `scripts/optimize_multigp_textures.mjs`: optimize textures and generate red variants.
 
-Run `npm run assets:multigp:refresh` only when updating the artwork, then inspect the resulting changes and run `npm test`. The separately maintained double-sided banner PNG and WebP must be preserved; they are not generated from the GLB. The first release preserves all existing TrackDraw textures byte-for-byte. See the [full asset workflow](multigp/README.md).
+Run `npm run assets:multigp:refresh` only when updating the artwork, then inspect the resulting changes and run `npm test`. The separately maintained double-sided banner PNG and WebP must be preserved; they are not generated from the GLB. The initial migration preserved all existing TrackDraw textures byte-for-byte. See the [full asset workflow](multigp/README.md).
 
-TrackDraw's current copies stay in place until its separate pinned-vendoring migration (dutchdronesquad/trackdraw#867); this repo becomes the source for subsequent asset updates.
+TrackDraw's current copies stay in place until its separate consumer migration (dutchdronesquad/trackdraw#867); this repo becomes the source for subsequent asset updates.
 
 ## Hosted URL contract
 
 The intended production URL is:
 
 ```text
-https://obstacles.trackdraw.app/v0.1.0/multigp/large-top-multigp.webp
+https://obstacles.trackdraw.app/multigp/large-top-multigp.webp
 ```
 
-Use `/<git-tag>/<organization>/<filename>.webp`. Pin a version: there is no mutable `latest` alias. Runtime filenames retain their original case. Consumers need no API key. Only WebP runtime textures are uploaded; source GLBs and maintenance PNGs remain in Git. Hosted URLs become available after the one-time setup and release upload below.
+Use `/<organization>/<filename>.webp`. These are stable, shared URLs: compatible artwork improvements update all consumers automatically. Changes requiring different rendering must use a new filename and keep the old file available. No asset version or consumer version bump is needed for compatible updates.
+
+Runtime filenames retain their original case. Consumers need no API key. Only WebP runtime textures are uploaded; source GLBs and maintenance PNGs remain in Git. Browser and CDN caching is five minutes (`public, max-age=300, must-revalidate`), so updates need no cache purge. Custom Cloudflare cache rules must not override this TTL. Uploads overwrite matching keys but do not delete other bucket objects.
 
 ## One-time Cloudflare setup
 
@@ -47,9 +49,9 @@ In the Cloudflare account that owns `trackdraw.app`:
 
 Cloudflare references: [custom domains](https://developers.cloudflare.com/r2/buckets/public-buckets/) and [CORS](https://developers.cloudflare.com/r2/buckets/cors/).
 
-## Publish a release
+## Automatic publishing
 
-Publishing a GitHub release with a `vX.Y.Z` tag automatically runs **Publish assets**: test the tagged files, upload their WebP textures, then verify the public bytes, content type, CORS and cache headers. Pushes and pull requests run asset checks; only a published release uploads to R2. Each release keeps its own immutable URL prefix.
+Every push to `main` runs **Publish assets**: test the committed textures, upload their WebP files to stable URLs, then verify public bytes, content type, CORS and cache headers. No release or tag is required. GitHub serializes publishing runs; each run checks out the current default branch so an older queued run cannot restore older assets.
 
 ### One-time GitHub configuration
 
@@ -60,29 +62,17 @@ Open this repository's **Settings → Secrets and variables → Actions**:
 
 ### Publish or retry from GitHub
 
-1. Commit the reviewed asset changes and wait for **Check assets** to pass.
-2. In **Releases → Draft a new release**, create a new `vX.Y.Z` tag on the intended commit and click **Publish release**.
-3. Follow **Actions → Publish assets**. No terminal commands are required.
+Commit and push reviewed texture changes to `main`; **Actions → Publish assets** uploads them automatically. To repopulate an emptied bucket or retry, open **Actions → Publish assets → Run workflow** and disable **Validate assets without uploading**. No terminal is required.
 
-For an existing release (including `v0.1.0`), open **Actions → Publish assets → Run workflow**, select the default branch, and enter the tag. Leave **Validate the release without uploading** enabled for a credentials-free check, or disable it to upload and verify. Republishing is safe for identical files; the uploader refuses different bytes at an already published URL. GitHub serializes uploads of the same tag and does not cancel an upload already in progress.
+The workflow uploads committed HEAD bytes and always refreshes the object's content and cache metadata. It does not rebuild textures during publication; generate and review texture changes before committing them. Public verification uses a cache-busting query; existing browser URLs may still serve the previous texture for up to five minutes. Files are uploaded individually, not as an atomic set.
 
-The workflow reads **tagged Git objects**, not working-tree textures. It sets `Content-Type: image/webp` and `Cache-Control: public, max-age=31536000, immutable`. Do not edit published objects or move published tags; create a new release for changes. The package is private and is not published to npm.
-
-The terminal remains available as a fallback (do not run it concurrently with a workflow for the same tag):
+The terminal remains available as a fallback (do not run it concurrently with a workflow):
 
 ```sh
 npm ci
-git fetch origin --tags
 export CLOUDFLARE_ACCOUNT_ID='YOUR_TRACKDRAW_ACCOUNT_ID'
-npm run release:upload -- v0.1.0 --dry-run
-npm run release:upload -- v0.1.0
+npm run assets:upload -- --dry-run
+npm run assets:upload
 ```
 
-After uploading, check an actual texture with a browser Origin header:
-
-```sh
-curl -I -H 'Origin: https://trackdraw.app' \
-  https://obstacles.trackdraw.app/v0.1.0/multigp/large-top-multigp.webp
-```
-
-Expect HTTP 200, `Content-Type: image/webp`, `Access-Control-Allow-Origin: *` and the immutable cache header. Also check it from the DDS viewer once its hosted-texture integration is available. Until the bucket, domain, upload and live checks are complete, TrackDraw issue #866 remains open.
+The package is private and is not published to npm. Legacy version-prefixed objects and GitHub releases are not used or deleted by the workflow.

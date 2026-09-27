@@ -11,7 +11,7 @@
     "assets:multigp:optimize": "node scripts/optimize_multigp_textures.mjs",
     "assets:multigp:refresh": "npm run assets:multigp:extract && npm run assets:multigp:optimize",
     "test": "node --test",
-    "release:upload": "node scripts/upload-release.mjs"
+    "assets:upload": "node scripts/upload-assets.mjs"
   },
   "devDependencies": {
     "sharp": "0.35.4",
