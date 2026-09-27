@@ -12,7 +12,8 @@ export async function verifyAssets(files = assetFiles(), fetchAsset = fetch) {
     assert.equal(response.status, 200, asset.key);
     assert.equal(response.headers.get('content-type'), 'image/webp', asset.key);
     assert.equal(response.headers.get('access-control-allow-origin'), '*', asset.key);
-    assert.equal(response.headers.get('cache-control'), 'public, max-age=300, must-revalidate', asset.key);
+    assert.equal(response.headers.get('cache-control'), 'public, max-age=300, must-revalidate',
+      `${asset.key}: unexpected Cache-Control; set Cloudflare Browser TTL to Respect origin. See docs/cloudflare-setup.md.`);
     assert.ok(Buffer.from(await response.arrayBuffer()).equals(asset.bytes), asset.key);
     console.log(`Verified ${asset.key}`);
   }

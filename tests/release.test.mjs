@@ -38,12 +38,12 @@ test('all migrated runtime textures decode and have matching maintenance PNGs', 
 
 test('stable URLs use committed HEAD bytes and exclude maintenance files', () => {
   const original = process.cwd();
-  const directory = mkdtempSync(path.join(tmpdir(), 'obstacles-tag-test-'));
+  const directory = mkdtempSync(path.join(tmpdir(), 'obstacles-upload-test-'));
   try {
     process.chdir(directory);
     execFileSync('git', ['init', '--quiet']);
     mkdirSync('multigp/textures', { recursive: true });
-    writeFileSync('multigp/textures/gate.webp', 'tagged bytes');
+    writeFileSync('multigp/textures/gate.webp', 'committed bytes');
     writeFileSync('multigp/textures/gate.png', 'maintenance');
     execFileSync('git', ['add', '.']);
     execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'fixture']);
@@ -51,7 +51,7 @@ test('stable URLs use committed HEAD bytes and exclude maintenance files', () =>
     const files = assetFiles();
     assert.equal(files.length, 1);
     assert.equal(files[0].key, 'multigp/gate.webp');
-    assert.equal(files[0].bytes.toString(), 'tagged bytes');
+    assert.equal(files[0].bytes.toString(), 'committed bytes');
     execFileSync('git', ['add', '.']);
     execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'updated texture']);
     const updated = assetFiles();
@@ -73,6 +73,12 @@ test('stable URLs use committed HEAD bytes and exclude maintenance files', () =>
     assert.ok(uploaded.args.includes('trackdraw-obstacles/multigp/gate.webp'));
     assert.equal(uploaded.args[uploaded.args.indexOf('--cache-control') + 1], 'public, max-age=300, must-revalidate');
     assert.equal(uploaded.bytes, 'uncommitted changes');
+    execFileSync(process.execPath, [script, '--dry-run'], {
+      env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: '' },
+    });
+    assert.throws(() => execFileSync(process.execPath, [script], {
+      env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: '' }, stdio: 'pipe',
+    }), /Set CLOUDFLARE_ACCOUNT_ID/);
     writeFileSync('node_modules/wrangler/bin/wrangler.js', 'process.exit(1)');
     assert.throws(() => execFileSync(process.execPath, [script], {
       env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: 'test-account' }, stdio: 'pipe',
@@ -101,4 +107,29 @@ test('public verification checks bytes and response headers', async () => {
   await assert.rejects(verifyAssets(files, async () => new Response('wrong bytes', { headers })));
   await assert.rejects(verifyAssets(files, async () => new Response('texture')));
   await assert.rejects(verifyAssets(files, async () => new Response(null, { status: 404 })));
+});
+
+
+test('public verification rejects CDN cache overrides with an actionable error', async () => {
+  const { verifyAssets } = await import('../scripts/verify-assets.mjs');
+  const files = [{ key: 'multigp/gate.webp', bytes: Buffer.from('texture') }];
+  await assert.rejects(verifyAssets(files, async () => new Response('texture', {
+    headers: {
+      'content-type': 'image/webp',
+      'access-control-allow-origin': '*',
+      'cache-control': 'public, max-age=14400, must-revalidate',
+    },
+  })), /Cloudflare Browser TTL to Respect origin/);
+});
+
+test('public verification rejects missing CORS and failed requests', async () => {
+  const { verifyAssets } = await import('../scripts/verify-assets.mjs');
+  const files = [{ key: 'multigp/gate.webp', bytes: Buffer.from('texture') }];
+  await assert.rejects(verifyAssets(files, async () => new Response('texture', {
+    headers: {
+      'content-type': 'image/webp',
+      'cache-control': 'public, max-age=300, must-revalidate',
+    },
+  })), /multigp\/gate.webp/);
+  await assert.rejects(verifyAssets(files, async () => { throw new Error('network unavailable'); }), /network unavailable/);
 });
