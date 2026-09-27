@@ -13,7 +13,7 @@ export async function verifyAssets(files = assetFiles(), fetchAsset = fetch) {
       signal: AbortSignal.timeout(30_000),
     });
     assert.equal(response.status, 200, asset.key);
-    assert.equal(response.headers.get('content-type'), 'image/webp', asset.key);
+    assert.equal(response.headers.get('content-type'), asset.contentType ?? 'image/webp', asset.key);
     assert.equal(response.headers.get('access-control-allow-origin'), '*', asset.key);
     assert.equal(response.headers.get('cache-control'), 'public, max-age=300, must-revalidate',
       `${asset.key}: unexpected Cache-Control; set Cloudflare Browser TTL to Respect origin. See docs/cloudflare-setup.md.`);

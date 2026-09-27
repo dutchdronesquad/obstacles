@@ -13,7 +13,7 @@ Cloudflare references: [custom domains](https://developers.cloudflare.com/r2/buc
 
 ## Automatic publishing
 
-Every push to `main` runs **Publish assets**: test the committed textures, upload their WebP files to stable URLs, then verify public bytes, content type, CORS and cache headers. No release or tag is required. GitHub serializes publishing runs; each run checks out the current default branch so an older queued run cannot restore older assets.
+Every push to `main` runs **Publish assets**: validate collections and test the committed textures, upload their WebP files followed by JSON manifests and the discovery index to stable URLs, then verify public bytes, content type, CORS and cache headers. No release or tag is required. GitHub serializes publishing runs; each run checks out the current default branch so an older queued run cannot restore older assets.
 
 ### One-time GitHub configuration
 
@@ -49,3 +49,5 @@ The package is private and is not published to npm. Legacy version-prefixed obje
 If uploads succeed but verification reports `max-age=14400` instead of `max-age=300`, Cloudflare is overriding the object cache header. In the `trackdraw.app` zone, add a Cache Rule matching `http.host eq "obstacles.trackdraw.app"` and set **Browser TTL → Respect origin**. Ensure no later matching rule overrides this setting, and leave Edge TTL respecting the origin headers too. Alternatively, the zone-wide **Caching → Configuration → Browser Cache TTL → Respect Existing Headers** setting applies to the entire zone. Prefer the hostname-specific rule to avoid changing other applications.
 
 Then rerun **Publish assets**. The verifier requests a fresh URL; existing browser caches can retain the old four-hour lifetime until it expires. See [Cloudflare Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
+
+Collection metadata uses the same CORS and cache rules as textures, with `application/json` content type. The directory migration does not change existing image URLs. See [the collection contract](collection-contract.md) for publication order, discovery and failure handling.

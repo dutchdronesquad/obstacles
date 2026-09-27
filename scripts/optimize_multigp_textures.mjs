@@ -7,7 +7,7 @@ import sharp from "sharp";
 
 const TEXTURE_DIR = path.join(
   process.cwd(),
-  "multigp/textures"
+  "collections/multigp/textures"
 );
 
 const PNG_OPTIONS = {

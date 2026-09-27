@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "id": "multigp",
+  "name": "MultiGP",
+  "status": "published",
+  "author": "MultiGP; texture maintenance by TrackDraw contributors",
+  "attribution": "MultiGP Drone Race Course Obstacles: https://www.multigp.com/multigp-drone-race-course-obstacles/",
+  "usage": {
+    "terms": "Artwork and branding remain the property of MultiGP. Included as references for race layout planning; no separate redistribution license is granted by this repository. Consult the rights holder for permission.",
+    "portable": "not-granted"
+  },
+  "textures": [
+    {
+      "id": "standard-gate",
+      "name": "Standard gate",
+      "template": "gate-standard-v1",
+      "panels": {
+        "left": "textures/MultiGP-2017-Airgate-left-panel-regular-50-percent.webp",
+        "right": "textures/MultiGP-2017-Airgate-right-panel-regular-50-percent.webp",
+        "top": "textures/MultiGP-2017-Airgate-top-regular-50-percent.webp"
+      }
+    },
+    {
+      "id": "championship-gate",
+      "name": "Championship gate",
+      "template": "gate-championship-v1",
+      "panels": {
+        "left": "textures/large-side-panel-multigp.webp",
+        "right": "textures/large-side-panel-multigp.webp",
+        "top": "textures/large-top-multigp.webp"
+      }
+    },
+    {
+      "id": "standard-gate-red",
+      "name": "Standard gate-red",
+      "template": "gate-standard-v1",
+      "panels": {
+        "left": "textures/MultiGP-2017-Airgate-left-panel-regular-50-percent.webp",
+        "right": "textures/MultiGP-2017-Airgate-right-panel-regular-50-percent.webp",
+        "top": "textures/MultiGP-2017-Airgate-top-red-50-percent.webp"
+      }
+    },
+    {
+      "id": "championship-gate-red",
+      "name": "Championship gate-red",
+      "template": "gate-championship-v1",
+      "panels": {
+        "left": "textures/large-side-panel-multigp.webp",
+        "right": "textures/large-side-panel-multigp.webp",
+        "top": "textures/large-top-red-multigp.webp"
+      }
+    },
+    {
+      "id": "corner-flag",
+      "name": "Corner flag",
+      "template": "corner-flag-v1",
+      "panels": {
+        "front": "textures/feather-banners-cobranded-multigp.webp",
+        "back": "textures/feather-banners-cobranded-multigp-back-double-sided.webp"
+      }
+    },
+    {
+      "id": "hurdle",
+      "name": "Hurdle",
+      "template": "hurdle-v1",
+      "panels": {
+        "front": "textures/5x10-hurdle-multigp.webp"
+      }
+    }
+  ]
+}

@@ -4,8 +4,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const DEFAULT_GLB_PATH = "multigp/source/multigp-obstacles.glb";
-const DEFAULT_OUT_DIR = "multigp/textures";
+const DEFAULT_GLB_PATH = "collections/multigp/source/multigp-obstacles.glb";
+const DEFAULT_OUT_DIR = "collections/multigp/textures";
 const GLB_MAGIC = 0x46546c67;
 const JSON_CHUNK_TYPE = 0x4e4f534a;
 const BIN_CHUNK_TYPE = 0x004e4942;

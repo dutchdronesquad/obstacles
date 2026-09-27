@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
+import { validateManifest, publicationFiles, workingTreeFiles } from '../scripts/collections.mjs';
 import { assetFiles } from '../scripts/upload-assets.mjs';
 
 const expected = [
@@ -24,11 +25,11 @@ const expected = [
 ];
 
 test('all migrated runtime textures decode and have matching maintenance PNGs', async () => {
-  const files = await readdir('multigp/textures');
+  const files = await readdir('collections/multigp/textures');
   assert.deepEqual(files.filter(file => file.endsWith('.webp')).sort(), expected.map(name => `${name}.webp`).sort());
   for (const name of expected) {
-    const png = sharp(await readFile(`multigp/textures/${name}.png`));
-    const webp = sharp(await readFile(`multigp/textures/${name}.webp`));
+    const png = sharp(await readFile(`collections/multigp/textures/${name}.png`));
+    const webp = sharp(await readFile(`collections/multigp/textures/${name}.webp`));
     const a = await png.metadata();
     const b = await webp.metadata();
     assert.equal(b.format, 'webp');
@@ -45,14 +46,15 @@ test('stable URLs use committed HEAD bytes and exclude maintenance files', () =>
   try {
     process.chdir(directory);
     execFileSync('git', ['init', '--quiet']);
-    mkdirSync('multigp/textures', { recursive: true });
-    writeFileSync('multigp/textures/gate.webp', 'committed bytes');
-    writeFileSync('multigp/textures/gate.png', 'maintenance');
+    mkdirSync('collections/multigp/textures', { recursive: true });
+    writeFileSync('collections/multigp/textures/gate.webp', 'committed bytes');
+    writeFileSync('collections/multigp/textures/gate.png', 'maintenance');
+    writeFileSync('collections/multigp/manifest.json', JSON.stringify(fixtureManifest()));
     execFileSync('git', ['add', '.']);
     execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'fixture']);
-    writeFileSync('multigp/textures/gate.webp', 'uncommitted changes');
+    writeFileSync('collections/multigp/textures/gate.webp', 'uncommitted changes');
     const files = assetFiles();
-    assert.equal(files.length, 1);
+    assert.equal(files.length, 3);
     assert.equal(files[0].key, 'multigp/gate.webp');
     assert.equal(files[0].bytes.toString(), 'committed bytes');
     execFileSync('git', ['add', '.']);
@@ -64,15 +66,21 @@ test('stable URLs use committed HEAD bytes and exclude maintenance files', () =>
     writeFileSync('node_modules/wrangler/bin/wrangler.js', `
       const fs = require('node:fs');
       const args = process.argv.slice(2);
-      fs.writeFileSync('uploaded.json', JSON.stringify({
+      fs.appendFileSync('uploaded.jsonl', JSON.stringify({
         args, bytes: fs.readFileSync(args[args.indexOf('--file') + 1], 'utf8')
-      }));
+      }) + '\\n');
     `);
     const script = new URL('../scripts/upload-assets.mjs', import.meta.url).pathname;
     execFileSync(process.execPath, [script], {
       env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: 'test-account' },
     });
-    const uploaded = JSON.parse(readFileSync('uploaded.json', 'utf8'));
+    const uploads = readFileSync('uploaded.jsonl', 'utf8').trim().split('\n').map(line => JSON.parse(line));
+    const uploaded = uploads[0];
+    assert.equal(uploads.length, 3);
+    assert.ok(uploads[1].args.includes('trackdraw-obstacles/multigp/manifest.json'));
+    assert.ok(uploads[2].args.includes('trackdraw-obstacles/collections.json'));
+    assert.ok(uploads[2].args.includes('application/json'));
+    assert.ok(uploads.every(upload => upload.args[2] === 'put'));
     assert.ok(uploaded.args.includes('trackdraw-obstacles/multigp/gate.webp'));
     assert.equal(uploaded.args[uploaded.args.indexOf('--cache-control') + 1], 'public, max-age=300, must-revalidate');
     assert.equal(uploaded.bytes, 'uncommitted changes');
@@ -135,4 +143,65 @@ test('public verification rejects missing CORS and failed requests', async () =>
     },
   })), /multigp\/gate.webp/);
   await assert.rejects(verifyAssets(files, async () => { throw new Error('network unavailable'); }), /network unavailable/);
+});
+
+function fixtureManifest() {
+  return { schemaVersion: 1, id: 'multigp', name: 'Test', status: 'published', author: 'Test', attribution: 'Original fixture', usage: { terms: 'Test only', portable: 'not-granted' }, textures: [{ id: 'gate', name: 'Gate', template: 'gate-standard-v1', panels: { left: 'textures/gate.webp', right: 'textures/gate.webp', top: 'textures/gate.webp' } }] };
+}
+
+test('both collections validate and publication preserves every historical texture URL', async () => {
+  const files = workingTreeFiles();
+  const result = publicationFiles(files, file => readFileSync(file));
+  const runtime = result.filter(file => file.contentType === 'image/webp');
+  assert.deepEqual(runtime.map(file => file.key).sort(), expected.map(name => `multigp/${name}.webp`).sort());
+  assert.ok(!result.some(file => file.key.startsWith('dds/')));
+  assert.deepEqual(JSON.parse(result.at(-1).bytes).collections, [{ id: 'multigp', name: 'MultiGP', manifest: '/multigp/manifest.json' }]);
+  const manifest = JSON.parse(result.find(file => file.key === 'multigp/manifest.json').bytes);
+  assert.equal(manifest.textures[0].panels.left, '/multigp/MultiGP-2017-Airgate-left-panel-regular-50-percent.webp');
+  const { verifyAssets } = await import('../scripts/verify-assets.mjs');
+  await verifyAssets(result.filter(file => file.contentType === 'application/json'), async url => {
+    const file = result.find(file => new URL(url).pathname === `/${file.key}`);
+    return new Response(file.bytes, { headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=300, must-revalidate' } });
+  });
+});
+
+test('invalid collection contracts fail with actionable errors before publication', () => {
+  const files = new Set(['collections/multigp/textures/gate.webp']);
+  const cases = [
+    [m => m.schemaVersion = 2, /unsupported schemaVersion/],
+    [m => m.id = 'other', /directory slug/],
+    [m => m.textures.push(structuredClone(m.textures[0])), /duplicate texture id/],
+    [m => m.textures[0].template = 'unknown-v1', /unsupported template/],
+    [m => delete m.textures[0].panels.top, /missing top/],
+    [m => m.textures[0].panels.extra = 'textures/gate.webp', /unknown field extra/],
+    [m => m.textures[0].panels.top = '../other/gate.webp', /unsafe or invalid/],
+    [m => m.textures[0].panels.top = 'textures/missing.webp', /missing panel file/],
+    [m => m.usage.portable = true, /usage.portable/],
+    [m => m.author = '', /non-empty string/],
+  ];
+  for (const [change, error] of cases) {
+    const manifest = fixtureManifest(); change(manifest);
+    assert.throws(() => validateManifest(manifest, 'multigp', files), error);
+  }
+  assert.throws(() => publicationFiles(['collections/multigp/manifest.json'], () => Buffer.from('{')), /invalid JSON/);
+});
+
+test('DDS example panels decode and remain excluded from publication', async () => {
+  const manifest = JSON.parse(await readFile('collections/dds/manifest.json', 'utf8'));
+  assert.equal(manifest.status, 'example');
+  for (const file of Object.values(manifest.textures[0].panels)) {
+    const image = sharp(await readFile(`collections/dds/${file}`));
+    assert.equal((await image.metadata()).format, 'webp');
+    await image.raw().toBuffer();
+  }
+});
+
+test('publication rejects orphan textures and validates examples before excluding them', () => {
+  const manifest = fixtureManifest();
+  const files = ['collections/multigp/manifest.json', 'collections/multigp/textures/gate.webp', 'collections/orphan/textures/gate.webp'];
+  const read = () => Buffer.from(JSON.stringify(manifest));
+  assert.throws(() => publicationFiles(files, read), /missing manifest.json/);
+  manifest.status = 'example';
+  manifest.textures[0].panels.top = 'textures/missing.webp';
+  assert.throws(() => publicationFiles(files.slice(0, 2), read), /missing panel file/);
 });
