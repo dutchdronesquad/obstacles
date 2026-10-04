@@ -4,7 +4,8 @@
 // Turns an accepted "Submit obstacle artwork" issue into collection files (prepare, unprivileged)
 // and a pull request (open, privileged; never renders or executes submitted content).
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -205,9 +206,34 @@ function openPullRequest({ input, result, issue, repository, comment }) {
   const title = `feat: add ${String(result.name).replace(/[`@#\n\r]/g, '').slice(0, 80)} texture collection`;
   const existing = JSON.parse(sh('gh', ['pr', 'list', '--repo', repository, '--head', branch, '--state', 'open', '--json', 'url']))[0]?.url;
   const url = existing ?? sh('gh', ['pr', 'create', '--repo', repository, '--head', branch, '--title', title, '--label', 'new-feature', '--body-file', '-'], body);
-  // Pull requests created with GITHUB_TOKEN do not start pull_request workflows; dispatch the checks instead.
+  // Runs started through GITHUB_TOKEN do not trigger the preview-comment workflow,
+  // so dispatch the checks here and let the preview step of this workflow post the comment.
+  // Two minutes of margin for clock differences between the runner and GitHub.
+  const since = new Date(Date.now() - 120_000).toISOString();
   sh('gh', ['workflow', 'run', 'check.yml', '--repo', repository, '--ref', branch]);
+  if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `branch=${branch}\nsha=${sh('git', ['rev-parse', 'HEAD'])}\nsince=${since}\n`);
   comment(`Thanks @${author}! The pull request is open: ${url}\n\nIt will show 3D previews of your artwork in a few minutes.`);
+}
+
+// Waits for the dispatched check run on the submission branch, then posts its previews like the preview-comment workflow.
+async function preview() {
+  const { REPOSITORY: repository, BRANCH: branch, HEAD_SHA: sha, SINCE: since } = process.env;
+  if (!/^submission\/\d+-[a-z0-9-]+$/.test(branch ?? '') || !/^[0-9a-f]{40}$/.test(sha ?? '')) fail('Set BRANCH and HEAD_SHA from the open step.');
+  const deadline = Date.now() + 20 * 60_000;
+  let run;
+  while (Date.now() < deadline) {
+    const runs = JSON.parse(sh('gh', ['run', 'list', '--repo', repository, '--workflow', 'check.yml', '--branch', branch, '--event', 'workflow_dispatch', '--limit', '10', '--json', 'databaseId,status,conclusion,headSha,url,createdAt']));
+    run = runs.find(candidate => candidate.headSha === sha && candidate.createdAt >= (since ?? ''));
+    if (run?.status === 'completed') break;
+    await new Promise(resolve => setTimeout(resolve, 15_000));
+  }
+  if (run?.status !== 'completed') fail('The checks did not finish within 20 minutes; the preview comment was not posted.');
+  const directory = mkdtempSync(path.join(tmpdir(), 'submission-previews-'));
+  try { sh('gh', ['run', 'download', String(run.databaseId), '--repo', repository, '--name', 'texture-previews', '--dir', directory]); }
+  catch { console.log('The check run has no previews.'); }
+  execFileSync(process.execPath, [new URL('./preview-comment.mjs', import.meta.url).pathname, 'update', directory], {
+    stdio: 'inherit', env: { ...process.env, HEAD_SHA: sha, CONCLUSION: run.conclusion, RUN_URL: run.url },
+  });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -215,7 +241,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   try {
     if (command === 'prepare') await prepare(directory);
     else if (command === 'open') open(directory);
-    else fail('usage: submission.mjs prepare|open <directory>');
+    else if (command === 'preview') await preview();
+    else fail('usage: submission.mjs prepare|open <directory> | preview');
   } catch (error) {
     console.error(error.message);
     process.exitCode = 1;
