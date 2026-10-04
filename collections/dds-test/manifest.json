@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "dds-test",
+  "name": "DDS Test",
+  "status": "example",
+  "author": "DDS Test",
+  "attribution": "Artwork by DDS Test.",
+  "usage": {
+    "terms": "Artwork and logos remain the property of DDS Test. Provided to represent DDS Test obstacles in TrackDraw and compatible viewers; no other use or redistribution license is granted.",
+    "portable": "not-granted"
+  }
+}
