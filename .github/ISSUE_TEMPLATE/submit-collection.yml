@@ -6,77 +6,40 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for contributing artwork! Any racing organization can submit: a club, chapter, league, team or brand. Design each texture set on a copy of a [template sheet](https://github.com/dutchdronesquad/obstacles/blob/main/templates/README.md) (`gate-standard-v1.svg` for the standard 5x5 gate, `corner-flag-v1.svg` for the corner flag) and attach the saved `.svg` files below. No git or other tools are needed.
-
-        After a maintainer accepts the submission, a pull request with 3D previews is opened automatically and linked here.
+        Design each texture set on a copy of a [template sheet](https://github.com/dutchdronesquad/obstacles/blob/main/templates/README.md) and attach the saved `.svg` files below. After review, a pull request with 3D previews is opened automatically and linked here.
   - type: input
     id: organization
     attributes:
       label: Organization
-      description: The name shown in TrackDraw, for example your club, chapter, league or brand.
-    validations:
-      required: true
-  - type: input
-    id: slug
-    attributes:
-      label: Collection slug
-      description: Lowercase letters, digits and hyphens, for example `dds`. It becomes part of the public URLs.
-    validations:
-      required: true
-  - type: input
-    id: website
-    attributes:
-      label: Website
-      description: Website or social profile (optional).
-  - type: input
-    id: author
-    attributes:
-      label: Artwork author
-      description: Who made the artwork, for example your organization or a designer.
-    validations:
-      required: true
-  - type: input
-    id: attribution
-    attributes:
-      label: Attribution
-      description: Credits and rights holder, for example "Logo and artwork by Example Racing".
-    validations:
-      required: true
-  - type: textarea
-    id: terms
-    attributes:
-      label: Usage terms
-      description: How others may use this artwork. Example — "Artwork and logo remain the property of Example Racing. Provided to represent Example Racing obstacles in TrackDraw; no other use is granted."
-    validations:
-      required: true
-  - type: dropdown
-    id: portable
-    attributes:
-      label: Offline exports
-      description: May TrackDraw include this artwork in portable or offline exports of tracks?
-      options:
-        - "No"
-        - "Yes, our usage terms allow it"
+      description: Your club, chapter, league, team or brand, as shown in TrackDraw.
     validations:
       required: true
   - type: textarea
     id: artwork
     attributes:
       label: Template sheets
-      description: Drag your `.svg` files here, one per texture set. Optionally give each a name with `data-name` (see the template guide).
+      description: Drag your `.svg` files here, one per texture set.
+    validations:
+      required: true
+  - type: dropdown
+    id: usage
+    attributes:
+      label: Usage
+      description: Where may this artwork be used? It stays your property either way.
+      options:
+        - In TrackDraw only
+        - In TrackDraw, including offline track exports
     validations:
       required: true
   - type: textarea
     id: notes
     attributes:
       label: Notes
-      description: Anything reviewers should know (optional).
+      description: Optional, for example your website, or a designer to credit.
   - type: checkboxes
     id: permission
     attributes:
       label: Permission
       options:
-        - label: I own this artwork or have permission from the rights holder to publish it here under the terms above.
-          required: true
-        - label: The artwork does not copy MultiGP or other third-party branding without permission.
+        - label: We own this artwork or have permission to publish it, and it does not copy MultiGP or other third-party branding.
           required: true

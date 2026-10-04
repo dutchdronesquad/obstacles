@@ -5,32 +5,32 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { checkCollections } from '../scripts/check-collections.mjs';
-import { attachmentUrls, buildSubmission, checkPrepared, fields, parseIssueForm, plain } from '../scripts/submission.mjs';
+import { attachmentUrls, buildSubmission, checkPrepared, fields, parseIssueForm, plain, usageChoices } from '../scripts/submission.mjs';
 
 const body = (overrides = {}) => {
   const values = {
-    organization: 'Example Racing', slug: 'example-racing', website: 'https://example.test', author: 'Example Racing',
-    attribution: 'Logo and artwork by Example Racing', terms: 'Artwork remains the property of Example Racing.\nNo other use is granted.',
-    portable: 'No', artwork: '<img width="200" alt="gate" src="https://github.com/user-attachments/assets/1f2e3d4c-aaaa-bbbb-cccc-123456789abc" />\n[flag.svg](https://github.com/user-attachments/files/123456/flag.svg)',
-    notes: '_No response_', ...overrides,
+    organization: 'Example Racing',
+    artwork: '<img width="200" alt="gate" src="https://github.com/user-attachments/assets/1f2e3d4c-aaaa-bbbb-cccc-123456789abc" />\n[flag.svg](https://github.com/user-attachments/files/123456/flag.svg)',
+    usage: 'In TrackDraw only', notes: '_No response_', ...overrides,
   };
-  return Object.entries(fields).map(([key, label]) => `### ${label}\n\n${values[key]}`).join('\n\n') + '\n\n### Permission\n\n- [X] I own this artwork';
+  return Object.entries(fields).map(([key, label]) => `### ${label}\n\n${values[key]}`).join('\n\n') + '\n\n### Permission\n\n- [X] We own this artwork';
 };
 const sheet = async (template, attributes = '') =>
   (await readFile(`templates/${template}.svg`, 'utf8')).replace(`data-template="${template}"`, `data-template="${template}"${attributes}`);
 const issue = { number: 42, author: 'racing-member' };
 
-test('issue form fields match the submission form labels', async () => {
+test('the issue form matches the parser: same labels and usage choices', async () => {
   const form = await readFile('.github/ISSUE_TEMPLATE/submit-collection.yml', 'utf8');
   const labels = [...form.matchAll(/^ {6}label: (.+)$/gm)].map(match => match[1]);
   for (const label of Object.values(fields)) assert.ok(labels.includes(label), label);
+  const options = [...form.matchAll(/^ {8}- (In TrackDraw.*)$/gm)].map(match => match[1]);
+  assert.deepEqual(options, Object.keys(usageChoices));
 });
 
 test('issue bodies are parsed into values and attachment URLs', () => {
   const values = parseIssueForm(body());
-  assert.equal(values.slug, 'example-racing');
+  assert.equal(values.organization, 'Example Racing');
   assert.equal(values.notes, '');
-  assert.equal(values.terms, 'Artwork remains the property of Example Racing.\nNo other use is granted.');
   assert.deepEqual(attachmentUrls(values.artwork), [
     'https://github.com/user-attachments/assets/1f2e3d4c-aaaa-bbbb-cccc-123456789abc',
     'https://github.com/user-attachments/files/123456/flag.svg',
@@ -40,7 +40,7 @@ test('issue bodies are parsed into values and attachment URLs', () => {
 
 test('a submission becomes a complete collection that passes the checks', async () => {
   const sheets = [await sheet('gate-standard-v1', ' data-name="Main gate" data-back-color="#112233"'), await sheet('gate-standard-v1'), await sheet('corner-flag-v1')];
-  const submission = buildSubmission({ values: parseIssueForm(body()), sheets, issue, existing: ['dds', 'multigp'] });
+  const submission = buildSubmission({ values: parseIssueForm(body({ notes: 'Website: https://example.test' })), sheets, issue, existing: ['dds', 'multigp'] });
   assert.equal(submission.slug, 'example-racing');
   assert.deepEqual(submission.ids, ['main-gate', 'standard-gate', 'corner-flag']);
   assert.deepEqual([...submission.files.keys()].sort(), [
@@ -48,27 +48,36 @@ test('a submission becomes a complete collection that passes the checks', async 
     'collections/example-racing/source/corner-flag.svg', 'collections/example-racing/source/main-gate.svg', 'collections/example-racing/source/standard-gate.svg',
   ]);
   const manifest = JSON.parse(submission.files.get('collections/example-racing/manifest.json'));
-  assert.deepEqual(manifest.usage, { terms: 'Artwork remains the property of Example Racing. No other use is granted.', portable: 'not-granted' });
   assert.equal(manifest.status, 'example');
-  assert.match(submission.files.get('collections/example-racing/README.md'), /Submitted by @racing-member in #42\./);
+  assert.equal(manifest.author, 'Example Racing');
+  assert.equal(manifest.attribution, 'Artwork by Example Racing.');
+  assert.deepEqual(manifest.usage, {
+    terms: 'Artwork and logos remain the property of Example Racing. Provided to represent Example Racing obstacles in TrackDraw and compatible viewers; no other use or redistribution license is granted.',
+    portable: 'not-granted',
+  });
+  const readme = submission.files.get('collections/example-racing/README.md');
+  assert.match(readme, /Submitted by @racing-member in #42\./);
+  assert.match(readme, /Website: https:\/\/example\.test/);
   const files = new Map([...submission.files].map(([file, content]) => [file, Buffer.from(content)]));
   const result = await checkCollections([...files.keys()], file => files.get(file));
   assert.equal(result.sources, 3);
   assert.equal(result.checked, 8);
   const duplicate = buildSubmission({ values: parseIssueForm(body()), sheets: [await sheet('corner-flag-v1'), await sheet('corner-flag-v1')], issue });
   assert.deepEqual(duplicate.ids, ['corner-flag', 'corner-flag-2']);
-  const allowed = buildSubmission({ values: parseIssueForm(body({ portable: 'Yes, our usage terms allow it' })), sheets: [await sheet('corner-flag-v1')], issue });
-  assert.equal(JSON.parse(allowed.files.get('collections/example-racing/manifest.json')).usage.portable, 'allowed');
+  const offline = buildSubmission({ values: parseIssueForm(body({ usage: 'In TrackDraw, including offline track exports' })), sheets: [await sheet('corner-flag-v1')], issue });
+  const usage = JSON.parse(offline.files.get('collections/example-racing/manifest.json')).usage;
+  assert.equal(usage.portable, 'allowed');
+  assert.match(usage.terms, /including portable and offline track exports/);
 });
 
 test('problems are reported in words the submitter can act on', async () => {
   const values = parseIssueForm(body());
   const gate = await sheet('gate-standard-v1');
   const build = (changes, sheets = [gate], existing = []) => () => buildSubmission({ values: { ...values, ...changes }, sheets, issue, existing });
-  assert.throws(build({ slug: 'Example Racing' }), /must use lowercase letters, digits and hyphens/);
-  assert.throws(build({}, [gate], ['example-racing']), /already exists/);
-  assert.throws(build({ author: ' ' }), /Artwork author is required/);
-  assert.throws(build({ portable: '' }), /offline exports/);
+  assert.throws(build({ organization: '東京' }), /Could not make a web-friendly name/);
+  assert.throws(build({}, [gate], ['example-racing']), /`example-racing` already exists/);
+  assert.throws(build({ organization: ' ' }), /Organization is required/);
+  assert.throws(build({ usage: '' }), /Choose where the artwork may be used/);
   assert.throws(build({}, []), /Attach at least one template sheet/);
   assert.throws(build({}, Array(11).fill(gate)), /at most 10/);
   assert.throws(build({}, ['GIF89a...']), /Sheet 1 is not an SVG file/);
@@ -86,8 +95,8 @@ test('the privileged job accepts only expected paths', () => {
 });
 
 test('later fields cannot override earlier ones, and names are neutralised', async () => {
-  const values = parseIssueForm(body({ notes: 'hello\n\n### Collection slug\n\nmultigp' }));
-  assert.equal(values.slug, 'example-racing');
+  const values = parseIssueForm(body({ notes: 'hello\n\n### Organization\n\nMultiGP' }));
+  assert.equal(values.organization, 'Example Racing');
   assert.equal(plain('X closes #3 @org/team `x`'), '`X closes 3 org/team x`');
   const odd = buildSubmission({ values: parseIssueForm(body()), sheets: [await sheet('corner-flag-v1', ` data-name="ᴬᴮ ${'long '.repeat(40)}"`)], issue });
   assert.match(odd.ids[0], /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
