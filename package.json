@@ -13,8 +13,9 @@
     "test": "node --test",
     "assets:upload": "node scripts/upload-assets.mjs",
     "assets:verify": "node scripts/verify-assets.mjs",
-    "assets:check": "node scripts/collections.mjs",
-    "textures:export": "node scripts/templates.mjs"
+    "assets:check": "node scripts/check-collections.mjs",
+    "textures:export": "node scripts/templates.mjs",
+    "textures:preview": "node scripts/preview.mjs"
   },
   "devDependencies": {
     "sharp": "0.35.4",

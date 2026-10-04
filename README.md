@@ -4,6 +4,8 @@ Source models, artwork and browser-ready textures for drone racing obstacles, to
 
 Available collections: [MultiGP](collections/multigp/README.md).
 
+Want to add your club's artwork? See [CONTRIBUTING.md](CONTRIBUTING.md) and the [texture templates](templates/README.md).
+
 ## License and attribution
 
 ### Artwork and branding
@@ -47,4 +49,4 @@ Runtime filenames retain their original case. Consumers need no API key. Runtime
 
 ## Collection metadata
 
-See the [version 1 collection contract](docs/collection-contract.md) and [DDS diagnostic example](collections/dds/README.md). Run `npm run assets:check` to validate collections before publication. Published collections are discoverable at `/collections.json`; examples remain in Git only.
+See the [version 1 collection contract](docs/collection-contract.md) and the [DDS template pilot](collections/dds/README.md). Run `npm run assets:check` to validate manifests, images and editable sources before publication. Published collections are discoverable at `/collections.json`; examples remain in Git only.

@@ -70,8 +70,11 @@ The DDS standard gate in [`collections/dds`](../collections/dds/README.md) was m
    }
    ```
 
-6. **Validate.** Run `npm run assets:check && npm test`. Commit the SVG source and the exported WebP files together.
-7. **Check it in TrackDraw.** Compare the result with the template's reference image: front placement, which post each side panel is on, reading direction, the back of the obstacle, and a rotated view. Until TrackDraw can select collections (trackdraw#886), maintainers check a gate by serving the exported files in place of the MultiGP Standard Gate 5x5 texture URLs in a local TrackDraw session, for example with browser request overrides.
+6. **Validate.** Run `npm run assets:check && npm test`. Commit the SVG source and the exported WebP files together. `npm run textures:export` without arguments regenerates every collection source.
+7. **Review the contact sheet.** Run `npm run textures:preview -- <organization-slug>` and compare `previews/<organization-slug>.png` with the template's reference image: front placement, which post each side panel is on, reading direction and the back.
+8. **Check it in TrackDraw.** Maintainers do the final 3D check, including a rotated view. Until TrackDraw can select collections (trackdraw#886), they serve the exported files in place of the MultiGP texture URLs for the same template in a local TrackDraw session, for example with browser request overrides.
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for submitting the result.
 
 ## Rights
 

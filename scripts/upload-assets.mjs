@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Klaas Schoute
 
-import { committedPublicationFiles } from './collections.mjs';
+import { checkCollections } from './check-collections.mjs';
+import { committedPublicationFiles, committedTree, publicationFiles } from './collections.mjs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
@@ -17,7 +18,10 @@ export const assetFiles = committedPublicationFiles;
 async function main() {
   const [flag, ...extra] = process.argv.slice(2);
   if (extra.length || (flag && flag !== '--dry-run')) throw new Error('Only --dry-run is supported.');
-  const files = assetFiles();
+  const { files: committed, read } = committedTree();
+  await checkCollections(committed, read);
+  // Upload exactly the committed bytes that were just checked.
+  const files = publicationFiles(committed, read);
   for (const asset of files) {
     console.log(`${createHash('sha256').update(asset.bytes).digest('hex')}  ${origin}/${asset.key}`);
   }

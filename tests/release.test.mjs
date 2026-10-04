@@ -40,34 +40,40 @@ test('all migrated runtime textures decode and have matching maintenance PNGs', 
   }
 });
 
-test('stable URLs use committed HEAD bytes and exclude maintenance files', () => {
+test('stable URLs use committed HEAD bytes and exclude maintenance files', async () => {
   const original = process.cwd();
   const directory = mkdtempSync(path.join(tmpdir(), 'obstacles-upload-test-'));
+  const webp = background => sharp({ create: { width: 128, height: 64, channels: 3, background } }).webp({ lossless: true }).toBuffer();
+  const [committedBytes, updatedBytes] = await Promise.all([webp('#ff0000'), webp('#0000ff')]);
+  const manifest = fixtureManifest();
+  manifest.textures[0] = { id: 'hurdle', name: 'Hurdle', template: 'hurdle-v1', panels: { front: 'textures/gate.webp' } };
+  const commit = message => {
+    execFileSync('git', ['add', '.']);
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', message]);
+  };
   try {
     process.chdir(directory);
     execFileSync('git', ['init', '--quiet']);
     mkdirSync('collections/multigp/textures', { recursive: true });
-    writeFileSync('collections/multigp/textures/gate.webp', 'committed bytes');
+    writeFileSync('collections/multigp/textures/gate.webp', committedBytes);
     writeFileSync('collections/multigp/textures/gate.png', 'maintenance');
-    writeFileSync('collections/multigp/manifest.json', JSON.stringify(fixtureManifest()));
-    execFileSync('git', ['add', '.']);
-    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'fixture']);
-    writeFileSync('collections/multigp/textures/gate.webp', 'uncommitted changes');
+    writeFileSync('collections/multigp/manifest.json', JSON.stringify(manifest));
+    commit('fixture');
+    writeFileSync('collections/multigp/textures/gate.webp', updatedBytes);
     const files = assetFiles();
     assert.equal(files.length, 3);
     assert.equal(files[0].key, 'multigp/gate.webp');
-    assert.equal(files[0].bytes.toString(), 'committed bytes');
-    execFileSync('git', ['add', '.']);
-    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', '-c', 'commit.gpgsign=false', 'commit', '--quiet', '-m', 'updated texture']);
+    assert.ok(files[0].bytes.equals(committedBytes));
+    commit('updated texture');
     const updated = assetFiles();
     assert.equal(updated[0].key, files[0].key);
-    assert.equal(updated[0].bytes.toString(), 'uncommitted changes');
+    assert.ok(updated[0].bytes.equals(updatedBytes));
     mkdirSync('node_modules/wrangler/bin', { recursive: true });
     writeFileSync('node_modules/wrangler/bin/wrangler.js', `
       const fs = require('node:fs');
       const args = process.argv.slice(2);
       fs.appendFileSync('uploaded.jsonl', JSON.stringify({
-        args, bytes: fs.readFileSync(args[args.indexOf('--file') + 1], 'utf8')
+        args, bytes: fs.readFileSync(args[args.indexOf('--file') + 1]).toString('base64')
       }) + '\\n');
     `);
     const script = new URL('../scripts/upload-assets.mjs', import.meta.url).pathname;
@@ -83,7 +89,7 @@ test('stable URLs use committed HEAD bytes and exclude maintenance files', () =>
     assert.ok(uploads.every(upload => upload.args[2] === 'put'));
     assert.ok(uploaded.args.includes('trackdraw-obstacles/multigp/gate.webp'));
     assert.equal(uploaded.args[uploaded.args.indexOf('--cache-control') + 1], 'public, max-age=300, must-revalidate');
-    assert.equal(uploaded.bytes, 'uncommitted changes');
+    assert.ok(Buffer.from(uploaded.bytes, 'base64').equals(updatedBytes));
     execFileSync(process.execPath, [script, '--dry-run'], {
       env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: '' },
     });
@@ -94,13 +100,15 @@ test('stable URLs use committed HEAD bytes and exclude maintenance files', () =>
     assert.throws(() => execFileSync(process.execPath, [script], {
       env: { ...process.env, CLOUDFLARE_ACCOUNT_ID: 'test-account' }, stdio: 'pipe',
     }));
-
+    // A file that only claims to be WebP never reaches the bucket.
+    writeFileSync('collections/multigp/textures/gate.webp', 'not an image');
+    commit('broken texture');
+    assert.throws(() => execFileSync(process.execPath, [script, '--dry-run'], { stdio: 'pipe' }), /cannot decode image/);
   } finally {
     process.chdir(original);
     rmSync(directory, { recursive: true, force: true });
   }
 });
-
 
 test('public verification checks bytes and response headers', async () => {
   const { verifyAssets } = await import('../scripts/verify-assets.mjs');

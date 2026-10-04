@@ -14,10 +14,22 @@ jobs:
           node-version: 24
           cache: npm
       - name: Install dependencies
+        id: install
         run: npm ci
       - name: Test committed assets
         run: npm run assets:check && npm test
-      - name: Regenerate MultiGP textures
-        run: npm run assets:multigp:refresh
+      # Render contact sheets for reviewers even when checks fail.
+      - name: Render review contact sheets
+        if: always() && steps.install.outcome == 'success'
+        run: npm run textures:preview
+      - name: Upload contact sheets
+        if: always() && steps.install.outcome == 'success'
+        uses: actions/upload-artifact@v7
+        with:
+          name: texture-previews
+          path: previews/
+          if-no-files-found: ignore
+      - name: Regenerate textures
+        run: npm run assets:multigp:refresh && npm run textures:export
       - name: Test regenerated assets
         run: npm run assets:check && npm test

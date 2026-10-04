@@ -5,8 +5,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
-import { templates } from '../scripts/collections.mjs';
-import { exportFile, exportSheet, limits, templateSheets } from '../scripts/templates.mjs';
+import { limits, panelImages, templates } from '../scripts/collections.mjs';
+import { exportFile, exportSheet, templateSheets } from '../scripts/templates.mjs';
 
 const raw = bytes => sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 const pixel = ({ data, info }, x, y) => [...data.subarray((y * info.width + x) * 4, (y * info.width + x) * 4 + 4)];
@@ -17,6 +17,9 @@ test('template sheets cover exactly the manifest slots of their template', () =>
     for (const region of Object.values(sheet.panels)) {
       assert.ok(region.x >= 0 && region.y >= 0 && region.x + region.width <= sheet.width && region.y + region.height <= sheet.height, id);
       assert.ok(Math.max(region.width, region.height) * sheet.scale <= limits.maxEdge, id);
+    }
+    for (const [panel, region] of Object.entries(sheet.panels)) {
+      assert.ok(Math.abs(region.width / region.height / panelImages[id][panel] - 1) <= limits.aspectTolerance, `${id}.${panel} proportions`);
     }
   }
 });
