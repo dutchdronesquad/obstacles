@@ -14,7 +14,7 @@
     "assets:upload": "node scripts/upload-assets.mjs",
     "assets:verify": "node scripts/verify-assets.mjs",
     "assets:check": "node scripts/check-collections.mjs",
-    "textures:export": "node scripts/templates.mjs",
+    "textures:build": "node scripts/build.mjs",
     "textures:preview": "node scripts/preview.mjs"
   },
   "devDependencies": {

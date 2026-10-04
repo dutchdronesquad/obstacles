@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
 import { workingTreeFiles } from './collections.mjs';
+import { withGeneratedTextures } from './templates.mjs';
 
 // How each panel appears to a viewer, in template units; rotate is the in-plane turn the renderer applies.
 export const previewLayouts = {
@@ -111,9 +112,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     const ids = process.argv.length > 2 ? process.argv.slice(2) : all;
     for (const id of ids) if (!all.includes(id)) throw new Error(`unknown collection ${id}`);
     mkdirSync(path.join(root, 'previews'), { recursive: true });
+    process.chdir(root);
+    const view = await withGeneratedTextures(workingTreeFiles(), file => readFileSync(file));
     for (const id of ids) {
       const output = path.join(root, 'previews', `${id}.png`);
-      writeFileSync(output, await collectionPreview(id, file => readFileSync(path.join(root, file))));
+      writeFileSync(output, await collectionPreview(id, view.read));
       console.log(path.relative(root, output));
     }
   } catch (error) {

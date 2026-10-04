@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { limits, panelImages, templates } from '../scripts/collections.mjs';
-import { exportFile, exportSheet, templateSheets } from '../scripts/templates.mjs';
+import { exportSheet, templateSheets, withGeneratedTextures } from '../scripts/templates.mjs';
 
 const raw = bytes => sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
 const pixel = ({ data, info }, x, y) => [...data.subarray((y * info.width + x) * 4, (y * info.width + x) * 4 + 4)];
@@ -62,7 +62,6 @@ test('export rejects live text, linked files and sheets without template metadat
   await assert.rejects(exportSheet(sheet.replace('data-template="gate-standard-v1"', 'data-template="hurdle-v1"'), 'meta'), /no editable sheet/);
   await assert.rejects(exportSheet(sheet.replace('id="artwork"', 'id="art"'), 'layer'), /id="artwork"/);
   await assert.rejects(exportSheet(sheet.replace('width="700" height="600" viewBox="0 0 700 600"', 'width="700" height="500" viewBox="0 0 700 500"'), 'size'), /must be 700x600/);
-  await assert.rejects(exportFile('templates/gate-standard-v1.svg'), /collections\/<id>\/source/);
 });
 
 test('guides stay hidden when an editor marks the layer visible inline', async () => {
@@ -74,20 +73,28 @@ test('guides stay hidden when an editor marks the layer visible inline', async (
   assert.deepEqual([...colours], ['32,46,93']);
 });
 
-test('committed DDS gate textures match an export of their editable source', async () => {
-  const manifest = JSON.parse(await readFile('collections/dds/manifest.json', 'utf8'));
-  const gate = manifest.textures.find(texture => texture.id === 'standard-gate');
-  const { template, panels } = await exportSheet(await readFile('collections/dds/source/standard-gate.svg', 'utf8'), 'dds');
-  assert.equal(gate.template, template);
-  for (const [panel, file] of Object.entries(gate.panels)) {
-    const committed = await raw(await readFile(`collections/dds/${file}`));
-    const exported = await raw(panels[panel]);
-    assert.deepEqual(committed.info, exported.info, panel);
-    // Tolerate small anti-aliasing differences between platforms, not changed artwork.
-    let changed = 0;
-    for (let i = 0; i < committed.data.length; i += 4) {
-      if ([0, 1, 2, 3].some(c => Math.abs(committed.data[i + c] - exported.data[i + c]) > 32)) changed++;
-    }
-    assert.ok(changed <= committed.data.length / 4 / 1000, `${panel} differs from its source; run npm run textures:export`);
-  }
+test('each template sheet becomes a generated texture set in the manifest view', async () => {
+  const sheet = (await readFile('templates/gate-standard-v1.svg', 'utf8'))
+    .replace('data-template="gate-standard-v1"', 'data-template="gate-standard-v1" data-name="Club &amp; friends gate" data-back-color="#112233"');
+  const manifest = { schemaVersion: 1, id: 'club', name: 'Club', status: 'example', author: 'Club', attribution: 'Original', usage: { terms: 'Test', portable: 'not-granted' } };
+  const files = new Map([
+    ['collections/club/manifest.json', Buffer.from(JSON.stringify(manifest))],
+    ['collections/club/source/main-gate.svg', Buffer.from(sheet)],
+    ['collections/club/source/logo.svg', Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>')],
+  ]);
+  const view = await withGeneratedTextures([...files.keys()], file => files.get(file));
+  assert.equal(view.sources, 1, 'SVGs without data-template are kept as originals');
+  const [entry] = JSON.parse(view.read('collections/club/manifest.json')).textures;
+  assert.deepEqual(entry, {
+    id: 'main-gate', name: 'Club & friends gate', template: 'gate-standard-v1', backColor: '#112233',
+    panels: { left: 'textures/main-gate-left.webp', right: 'textures/main-gate-right.webp', top: 'textures/main-gate-top.webp' },
+  });
+  assert.deepEqual(view.files.filter(file => file.includes('/textures/')).sort(), Object.values(entry.panels).map(file => `collections/club/${file}`).sort());
+  assert.equal((await sharp(view.read('collections/club/textures/main-gate-top.webp')).metadata()).width, 2100);
+
+  files.set('collections/club/textures/main-gate-top.webp', Buffer.from('stale'));
+  await assert.rejects(withGeneratedTextures([...files.keys()], file => files.get(file)), /is generated from collections\/club\/source\/main-gate\.svg; delete the committed file/);
+  files.delete('collections/club/textures/main-gate-top.webp');
+  files.set('collections/club/source/Main Gate.svg', Buffer.from(sheet));
+  await assert.rejects(withGeneratedTextures([...files.keys()], file => files.get(file)), /file name must use lowercase letters, digits and hyphens/);
 });

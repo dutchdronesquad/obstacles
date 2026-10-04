@@ -6,7 +6,8 @@ import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { assetFiles, origin } from './upload-assets.mjs';
 
-export async function verifyAssets(files = assetFiles(), fetchAsset = fetch) {
+export async function verifyAssets(files, fetchAsset = fetch) {
+  files ??= await assetFiles();
   for (const asset of files) {
     const response = await fetchAsset(`${origin}/${asset.key}?verify=${createHash('sha256').update(asset.bytes).digest('hex')}`, {
       headers: { Origin: 'https://trackdraw.app' },

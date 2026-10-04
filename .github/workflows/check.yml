@@ -30,6 +30,6 @@ jobs:
           path: previews/
           if-no-files-found: ignore
       - name: Regenerate textures
-        run: npm run assets:multigp:refresh && npm run textures:export
+        run: npm run assets:multigp:refresh
       - name: Test regenerated assets
         run: npm run assets:check && npm test
