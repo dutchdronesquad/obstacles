@@ -161,9 +161,12 @@ function fixtureManifest() {
 test('both collections validate and publication preserves every historical texture URL', async () => {
   const { published: result } = await checkCollections(workingTreeFiles(), file => readFileSync(file));
   const runtime = result.filter(file => file.contentType === 'image/webp');
-  assert.deepEqual(runtime.map(file => file.key).sort(), expected.map(name => `multigp/${name}.webp`).sort());
-  assert.ok(!result.some(file => file.key.startsWith('dds/')));
-  assert.deepEqual(JSON.parse(result.at(-1).bytes).collections, [{ id: 'multigp', name: 'MultiGP', manifest: '/multigp/manifest.json' }]);
+  const dds = ['corner-flag-back', 'corner-flag-front', 'standard-gate-left', 'standard-gate-right', 'standard-gate-top'];
+  assert.deepEqual(runtime.map(file => file.key).sort(), [...dds.map(name => `dds/${name}.webp`), ...expected.map(name => `multigp/${name}.webp`)].sort());
+  assert.deepEqual(JSON.parse(result.at(-1).bytes).collections, [
+    { id: 'dds', name: 'Dutch Drone Squad', manifest: '/dds/manifest.json' },
+    { id: 'multigp', name: 'MultiGP', manifest: '/multigp/manifest.json' },
+  ]);
   const manifest = JSON.parse(result.find(file => file.key === 'multigp/manifest.json').bytes);
   assert.equal(manifest.textures[0].panels.left, '/multigp/MultiGP-2017-Airgate-left-panel-regular-50-percent.webp');
   const { verifyAssets } = await import('../scripts/verify-assets.mjs');
@@ -198,15 +201,20 @@ test('invalid collection contracts fail with actionable errors before publicatio
   assert.equal(validateManifest(withBack, 'multigp', files).textures[0].backColor, '#141c28');
 });
 
-test('DDS pilot texture set is generated from its sheet and stays unpublished', async () => {
-  const { view } = await checkCollections(workingTreeFiles(), file => readFileSync(file));
+test('DDS texture sets are generated from their sheets and published', async () => {
+  const { view, published } = await checkCollections(workingTreeFiles(), file => readFileSync(file));
   const manifest = JSON.parse(view.read('collections/dds/manifest.json'));
-  assert.equal(manifest.status, 'example');
-  assert.deepEqual(manifest.textures.map(({ id, name, template, backColor }) => ({ id, name, template, backColor })),
-    [{ id: 'standard-gate', name: 'Standard gate', template: 'gate-standard-v1', backColor: '#141c28' }]);
-  for (const file of Object.values(manifest.textures[0].panels)) {
+  assert.equal(manifest.status, 'published');
+  assert.equal(manifest.usage.portable, 'allowed');
+  assert.deepEqual(manifest.textures.map(({ id, name, template, backColor }) => ({ id, name, template, backColor })), [
+    { id: 'corner-flag', name: 'Corner flag', template: 'corner-flag-v1', backColor: undefined },
+    { id: 'standard-gate', name: 'Standard gate', template: 'gate-standard-v1', backColor: '#141c28' },
+  ]);
+  for (const entry of manifest.textures) for (const file of Object.values(entry.panels)) {
     assert.equal((await sharp(view.read(`collections/dds/${file}`)).metadata()).format, 'webp');
   }
+  const publicManifest = JSON.parse(published.find(file => file.key === 'dds/manifest.json').bytes);
+  assert.equal(publicManifest.textures[1].panels.left, '/dds/standard-gate-left.webp');
   assert.ok(!(await readdir('collections/dds')).includes('textures'), 'generated textures are never committed');
 });
 
