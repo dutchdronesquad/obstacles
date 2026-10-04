@@ -6,6 +6,11 @@ Available collections: [MultiGP](collections/multigp/README.md).
 
 Want to add your organization's obstacle artwork? See [CONTRIBUTING.md](CONTRIBUTING.md) and the [texture templates](templates/README.md).
 
+## Related repositories
+
+- [TrackDraw](https://github.com/dutchdronesquad/trackdraw) — the browser-based FPV track designer that uses these assets to represent obstacles in track layouts.
+- [TrackDraw Viewer](https://github.com/dutchdronesquad/track-viewer) — the standalone 2D and 3D viewer that uses these catalog textures to display TrackDraw tracks in other websites and applications.
+
 ## License and attribution
 
 ### Artwork and branding
@@ -29,7 +34,7 @@ npm ci
 npm test
 ```
 
-Each collection keeps its source files in `collections/<organization>/source/` and its maintenance images and runtime textures in `collections/<organization>/textures/`. Shared maintenance scripts live in `scripts/`.
+Each collection keeps its editable sources in `collections/<organization>/source/`. Template sheets there are rendered into runtime textures during checks and publication; collections that predate templates, such as MultiGP, keep committed maintenance images and runtime textures in `collections/<organization>/textures/`. Shared maintenance scripts live in `scripts/`.
 
 Follow the collection's README when updating artwork, review the generated textures and run `npm test`. Collection-specific steps and manually maintained assets are documented there; see the [MultiGP workflow](collections/multigp/README.md) for the first collection.
 
@@ -49,4 +54,4 @@ Runtime filenames retain their original case. Consumers need no API key. Runtime
 
 ## Collection metadata
 
-See the [version 1 collection contract](docs/collection-contract.md) and the [DDS template pilot](collections/dds/README.md). Run `npm run assets:check` to validate manifests, images and editable sources before publication. Published collections are discoverable at `/collections.json`; examples remain in Git only.
+See the [version 1 collection contract](docs/collection-contract.md) and the [DDS template pilot](collections/dds/README.md). Run `npm run assets:check` to validate manifests, images and template sheets, and `npm run textures:build` to write the exact publishable files to `build/`. Published collections are discoverable at `/collections.json`; examples remain in Git only.
