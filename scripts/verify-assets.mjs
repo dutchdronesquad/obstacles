@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { assetFiles, origin } from './upload-assets.mjs';
+import { assetFiles, builtFiles, origin } from './upload-assets.mjs';
 
 export async function verifyAssets(files, fetchAsset = fetch) {
   files ??= await assetFiles();
@@ -24,5 +24,6 @@ export async function verifyAssets(files, fetchAsset = fetch) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  await verifyAssets();
+  const from = process.argv.indexOf('--from');
+  await verifyAssets(from > -1 ? builtFiles(process.argv[from + 1]) : undefined);
 }

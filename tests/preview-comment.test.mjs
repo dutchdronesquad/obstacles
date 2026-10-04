@@ -52,12 +52,14 @@ test('the comment shows status, failures and previews per collection', () => {
   assert.ok(failed.startsWith(marker));
   assert.match(failed, /❌ Checks failed\. See \[the run\]\(https:\/\/example\.test\/run\)/);
   assert.match(failed, /```text\ncollections\/dds: problem\n```/);
-  assert.match(failed, /### dds\n\n!\[standard-gate in 3D\]\(https:\/\/raw\.example\/abc\/pr-7\/dds--standard-gate--3d\.png\)/);
-  assert.match(failed, /!\[dds contact sheet\]\(https:\/\/raw\.example\/abc\/pr-7\/dds\.png\)/);
+  assert.match(failed, /### dds\n\n!\[standard-gate in 3D\]\(https:\/\/raw\.example\/abc\/pr-7\/dds--standard-gate--3d\.png\?v=aaaaaaa\)/);
+  assert.match(failed, /!\[dds contact sheet\]\(https:\/\/raw\.example\/abc\/pr-7\/dds\.png\?v=aaaaaaa\)/);
   const passed = commentBody({ ...base, conclusion: 'success' });
   assert.match(passed, /✅ All checks passed\./);
   assert.ok(!passed.includes('Check output'));
   assert.match(commentBody({ ...base, previews: [], conclusion: 'success' }), /No collection changes to preview\./);
+  assert.ok(!passed.includes('[!WARNING]'));
+  assert.match(commentBody({ ...base, conclusion: 'success', toolingChanged: true }), /\[!WARNING\]\n> This pull request changes workflows, scripts or dependencies/);
 });
 
 test('3D render designs cover every template with valid panel mappings', async () => {

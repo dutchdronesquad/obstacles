@@ -5,8 +5,7 @@ on:
     types: [closed]
 permissions: {}
 concurrency:
-  group: pr-previews
-  cancel-in-progress: false
+  group: preview-cleanup-${{ github.event.pull_request.number }}
 jobs:
   cleanup:
     runs-on: ubuntu-latest
