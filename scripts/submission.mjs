@@ -8,9 +8,11 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const fields = {
-  organization: 'Organization', slug: 'Collection slug', website: 'Website', author: 'Artwork author',
-  attribution: 'Attribution', terms: 'Usage terms', portable: 'Offline exports', artwork: 'Template sheets', notes: 'Notes',
+export const fields = { organization: 'Organization', artwork: 'Template sheets', usage: 'Usage', notes: 'Notes' };
+// Each usage choice maps to manifest terms; the artwork always stays the organization's property.
+export const usageChoices = {
+  'In TrackDraw only': { portable: 'not-granted', scope: 'in TrackDraw and compatible viewers' },
+  'In TrackDraw, including offline track exports': { portable: 'allowed', scope: 'in TrackDraw and compatible viewers, including portable and offline track exports' },
 };
 export const limits = { sheets: 10, bytes: 5 * 1024 * 1024, text: 2000 };
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -48,14 +50,13 @@ const singleLine = (value, label) => {
 
 // Pure: validated form values and downloaded sheets in, repository files out.
 export function buildSubmission({ values, sheets, issue, existing = [] }) {
-  const slug = values.slug.trim().replace(/^`|`$/g, '').toLowerCase();
-  if (!slugPattern.test(slug)) fail('The collection slug must use lowercase letters, digits and hyphens, for example `my-racing`.');
-  if (existing.includes(slug)) fail(`A collection named \`${slug}\` already exists. Ask a maintainer to update it, or pick another slug.`);
   const name = singleLine(values.organization, 'Organization');
-  const author = singleLine(values.author, 'Artwork author');
-  const attribution = singleLine(values.attribution, 'Attribution');
-  const terms = singleLine(values.terms, 'Usage terms');
-  if (!['No', 'Yes, our usage terms allow it'].includes(values.portable)) fail('Choose whether offline exports are allowed.');
+  // The slug only appears in URLs; a maintainer can still change it in the pull request.
+  const slug = slugify(name);
+  if (!slugPattern.test(slug)) fail('Could not make a web-friendly name from the organization; add one under Notes and a maintainer will continue.');
+  if (existing.includes(slug)) fail(`A collection named \`${slug}\` already exists. To update it, mention that under Notes and a maintainer will help.`);
+  const usage = usageChoices[values.usage];
+  if (!usage) fail('Choose where the artwork may be used.');
   if (!sheets.length) fail('Attach at least one template sheet (.svg) under "Template sheets".');
   if (sheets.length > limits.sheets) fail(`Attach at most ${limits.sheets} template sheets.`);
 
@@ -75,18 +76,14 @@ export function buildSubmission({ values, sheets, issue, existing = [] }) {
     files.set(`collections/${slug}/source/${id}.svg`, svg);
   });
   const manifest = {
-    schemaVersion: 1, id: slug, name, status: 'example', author, attribution,
-    usage: { terms, portable: values.portable === 'No' ? 'not-granted' : 'allowed' },
+    schemaVersion: 1, id: slug, name, status: 'example', author: name, attribution: `Artwork by ${name}.`,
+    usage: { terms: `Artwork and logos remain the property of ${name}. Provided to represent ${name} obstacles ${usage.scope}; no other use or redistribution license is granted.`, portable: usage.portable },
   };
   files.set(`collections/${slug}/manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`);
-  const website = values.website.trim();
   const notes = values.notes.trim();
   files.set(`collections/${slug}/README.md`, [
     `# ${name}`, '',
-    `Submitted by @${issue.author} in #${issue.number}.`, '',
-    ...(website ? [`- Website: <${website.replace(/[<>\s]/g, '')}>`] : []),
-    `- Artwork: ${author}`, `- Attribution: ${attribution}`, '',
-    `Texture sets: ${[...ids].map(id => `\`${id}\``).join(', ')}, each generated from \`source/<id>.svg\`. See \`manifest.json\` for the usage terms.`,
+    `Submitted by @${issue.author} in #${issue.number}. Texture sets: ${[...ids].map(id => `\`${id}\``).join(', ')}, each generated from \`source/<id>.svg\`. See \`manifest.json\` for the usage terms.`,
     ...(notes ? ['', '## Notes from the submitter', '', notes.slice(0, limits.text)] : []), '',
   ].join('\n'));
   return { slug, name, ids: [...ids], files };

@@ -4,8 +4,8 @@ Any racing organization (a club, chapter, league, team or brand) can add artwork
 
 ## Before you start
 
-- **Rights.** You need permission to publish the artwork, including any logos. The repository's MIT license covers only the scripts and tests, not artwork. You record the author, attribution and usage terms in the submission form or your manifest.
-- **Portable use.** Decide whether TrackDraw may include your artwork in offline or portable exports. Set `usage.portable` to `allowed` only when you grant that in `usage.terms`; otherwise use `not-granted`.
+- **Rights.** You need permission to publish the artwork, including any logos. The repository's MIT license covers only the scripts and tests, not artwork. The submission form records your organization as author and rights holder; in the repository you write them in your manifest.
+- **Offline exports.** Decide whether TrackDraw may include your artwork in offline or portable track exports. In the form that is one choice; in a manifest, set `usage.portable` to `allowed` only when you grant that in `usage.terms`, otherwise `not-granted`.
 - **Templates.** Check which templates have an editable sheet in [templates/](templates/README.md). Today that is `gate-standard-v1` (standard 5x5 gate) and `corner-flag-v1` (corner flag).
 
 ## The easy way: submit through an issue
@@ -14,7 +14,7 @@ No git, Node.js or command line needed.
 
 1. **Download a template.** [`gate-standard-v1.svg`](templates/gate-standard-v1.svg) for the standard 5x5 gate or [`corner-flag-v1.svg`](templates/corner-flag-v1.svg) for the corner flag.
 2. **Design.** Open it in [Inkscape](https://inkscape.org/) (free) and draw on the Artwork layer; the [template guide](templates/README.md) explains orientation, safe areas and what to avoid. Save one file per texture set.
-3. **Submit.** [Open a "Submit obstacle artwork" issue](../../issues/new?template=submit-collection.yml), fill in your organization details and usage terms, and drag your `.svg` files into the form.
+3. **Submit.** [Open a "Submit obstacle artwork" issue](../../issues/new?template=submit-collection.yml), enter your organization's name, drag your `.svg` files into the form, and choose where the artwork may be used. The collection's web name, credits and usage terms are filled in for you; a maintainer can adjust them in the pull request.
 
 A maintainer checks the submission and adds the `accepted-submission` label. A bot then creates the collection, opens a pull request and links it in your issue; the pull request shows 3D renders of your artwork in TrackDraw's viewer. If something needs fixing, the bot explains it in the issue.
 
