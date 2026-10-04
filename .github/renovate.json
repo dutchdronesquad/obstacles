@@ -1,0 +1,23 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>dutchdronesquad/.github:renovate-base"],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "osvVulnerabilityAlerts": true,
+  "packageRules": [
+    {
+      "groupName": "npm dependencies",
+      "groupSlug": "npm-dependencies",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "These render the generated textures and the 3D previews; review a preview before merging.",
+      "matchPackageNames": ["sharp", "@trackdraw/viewer"],
+      "groupName": null,
+      "automerge": false
+    }
+  ]
+}
