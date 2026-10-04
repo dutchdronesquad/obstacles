@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Klaas Schoute
 
-import { committedTree } from './collections.mjs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { lstatSync, readdirSync, readFileSync } from 'node:fs';
@@ -14,8 +13,10 @@ export const bucket = 'trackdraw-obstacles';
 export const origin = 'https://obstacles.trackdraw.app';
 
 // Public files from committed HEAD bytes, including textures generated from template sheets.
+// Loaded lazily: publishing from a build directory needs no image libraries.
 export async function assetFiles() {
   const { checkCollections } = await import('./check-collections.mjs');
+  const { committedTree } = await import('./collections.mjs');
   const { files, read } = committedTree();
   return (await checkCollections(files, read)).published;
 }
