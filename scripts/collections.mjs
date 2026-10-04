@@ -12,12 +12,14 @@ export const templates = {
   'corner-flag-v1': ['front', 'back'],
   'hurdle-v1': ['front'],
 };
+// Templates whose back faces are unprinted and may take a solid backColor.
+export const backColorTemplates = new Set(['gate-standard-v1', 'gate-championship-v1']);
 const slug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const texturePath = /^textures\/[A-Za-z0-9][A-Za-z0-9._-]*\.webp$/;
 function fail(where, message) { throw new Error(`${where}: ${message}`); }
-function object(value, where, keys) {
+function object(value, where, keys, optional = []) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) fail(where, 'expected object');
-  for (const key of Object.keys(value)) if (!keys.includes(key)) fail(where, `unknown field ${key}`);
+  for (const key of Object.keys(value)) if (!keys.includes(key) && !optional.includes(key)) fail(where, `unknown field ${key}`);
   for (const key of keys) if (!Object.hasOwn(value, key)) fail(where, `missing ${key}`);
 }
 function text(value, where) {
@@ -36,12 +38,16 @@ export function validateManifest(manifest, id, files) {
   if (!Array.isArray(manifest.textures) || !manifest.textures.length) fail(where, 'textures must be a non-empty array');
   const ids = new Set();
   for (const entry of manifest.textures) {
-    object(entry, where, ['id', 'name', 'template', 'panels']);
+    object(entry, where, ['id', 'name', 'template', 'panels'], ['backColor']);
     if (typeof entry.id !== 'string' || !slug.test(entry.id) || ids.has(entry.id)) fail(where, `invalid or duplicate texture id ${entry.id}`);
     ids.add(entry.id);
     text(entry.name, `${where}.${entry.id}.name`);
     if (typeof entry.template !== 'string' || !Object.hasOwn(templates, entry.template)) fail(where, `unsupported template ${entry.template}`);
     object(entry.panels, `${where}.${entry.id}.panels`, templates[entry.template]);
+    if (Object.hasOwn(entry, 'backColor')) {
+      if (!backColorTemplates.has(entry.template)) fail(where, `backColor is not supported for ${entry.template}`);
+      if (typeof entry.backColor !== 'string' || !/^#[0-9a-f]{6}$/.test(entry.backColor)) fail(where, `${entry.id}.backColor must be a lowercase #rrggbb colour`);
+    }
     for (const file of Object.values(entry.panels)) {
       if (typeof file !== 'string' || !texturePath.test(file)) fail(where, `unsafe or invalid texture path ${file}`);
       if (!files.has(`collections/${id}/${file}`)) fail(where, `missing panel file ${file}`);

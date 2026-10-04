@@ -1,10 +1,10 @@
 # Texture collection contract, version 1
 
-Collections live under `collections/<organization-slug>/`, each containing `manifest.json`, `README.md`, editable `source/` files and runtime `textures/` files. Shared editable design templates will live under `templates/` (#2). Directory structure is independent of public URLs. Run `npm run assets:check` to validate working files; publication always validates and reads committed HEAD bytes.
+Collections live under `collections/<organization-slug>/`, each containing `manifest.json`, `README.md`, editable `source/` files and runtime `textures/` files. Shared editable design templates live under `templates/`; see the [template guide](../templates/README.md). Directory structure is independent of public URLs. Run `npm run assets:check` to validate working files; publication always validates and reads committed HEAD bytes.
 
 ## Manifest schema
 
-The executable schema is `validateManifest` and the versioned template slot registry in `scripts/collections.mjs`. Both the MultiGP collection and the DDS example use it. Unknown fields, unsupported versions/templates, missing fields, duplicate texture IDs, invalid paths and missing panel files fail validation with the collection filename. IDs are lowercase alphanumeric segments separated by hyphens. Runtime files use case-sensitive ASCII basenames and `.webp` extensions; paths, URLs and symlinks cannot escape the collection.
+The executable schema is `validateManifest` and the versioned template slot registry in `scripts/collections.mjs`. Both the MultiGP collection and the DDS pilot use it. Unknown fields, unsupported versions/templates, missing fields, duplicate texture IDs, invalid paths and missing panel files fail validation with the collection filename. IDs are lowercase alphanumeric segments separated by hyphens. Runtime files use case-sensitive ASCII basenames and `.webp` extensions; paths, URLs and symlinks cannot escape the collection.
 
 Every manifest requires:
 
@@ -17,7 +17,7 @@ Every manifest requires:
 | `author`, `attribution` | Non-empty credits and source/rights-holder information. |
 | `usage.terms` | Non-empty human-readable artwork usage terms. This is not the software license. |
 | `usage.portable` | `allowed` only with explicit permission recorded in terms; otherwise `not-granted`. This field does not grant rights by itself. |
-| `textures` | Non-empty array of texture sets. Each requires unique `id`, `name`, `template` and `panels`. |
+| `textures` | Non-empty array of texture sets. Each requires unique `id`, `name`, `template` and `panels`. Gate templates may add an optional `backColor` (`#rrggbb`) for their unprinted back faces. |
 
 A texture identity is the pair `(collection id, texture id)`. Each panel maps to a `textures/<filename>.webp` path in source manifests. Publication converts it to an origin-relative public path such as `/multigp/large-top-multigp.webp`. Consumer manifests have the same fields but public panel paths; do not feed them back into the source validator. Metadata contains no executable code, geometry or arbitrary remote texture URLs.
 
@@ -27,12 +27,14 @@ These template IDs identify existing artwork slots, not universal compatibility 
 
 | Template | Required panels | Consumer mapping |
 | --- | --- | --- |
-| `gate-standard-v1` | `left`, `right`, `top` | Existing standard gate panel-frame mapping; each source texture top edge faces the panel top. |
+| `gate-standard-v1` | `left`, `right`, `top` | Existing standard gate panel-frame mapping; each source texture top edge faces the panel top. `left` is the post on the viewer's left when facing the printed front. Only the front is textured. |
 | `gate-championship-v1` | `left`, `right`, `top` | Existing championship mapping: left top edge faces top; right top edge faces bottom; top faces top. Existing artwork shares the side image. |
-| `corner-flag-v1` | `front`, `back` | Existing corner-marker front/back planes; back artwork is already prepared for that plane. No additional consumer image mirroring. |
+| `corner-flag-v1` | `front`, `back` | Existing corner-marker front/back planes. Each side is drawn as seen from that side: the pole runs along the left edge of `front` and the right edge of `back`. No additional consumer image mirroring. |
 | `hurdle-v1` | `front` | Existing hurdle banner texture slot, same orientation as the current catalog. |
 
-Source panel names refer to renderer texture slots. Consumers must not infer extra flips from filenames or legacy artwork notes. The DDS diagnostic example marks the image top edge; visual template work and consumer integration must verify actual physical reading directions before enabling DDS in discovery. A different geometry, panel mapping or orientation requires a new template ID/version, not a silent reinterpretation.
+Gate templates texture only the front. `backColor` asks consumers to paint every back face of that texture set in one solid colour; without it they keep their default panel colours. Consumers that do not support it yet ignore it; TrackDraw support is tracked in trackdraw#886.
+
+Source panel names refer to renderer texture slots. Consumers must not infer extra flips from filenames or legacy artwork notes. The `gate-standard-v1` and `corner-flag-v1` orientations were verified in TrackDraw's 3D view; the [reference images](../templates/reference/) show the front, back and rotated results. A different geometry, panel mapping or orientation requires a new template ID/version, not a silent reinterpretation.
 
 ## Discovery and publication
 
@@ -46,4 +48,4 @@ Moving `multigp/` to `collections/multigp/` leaves every `/multigp/<filename>.we
 
 Public accessibility and this repository's MIT software license do not establish artwork redistribution rights. `portable: not-granted` means a new consumer must not assume permission to bundle artwork for offline redistribution; it must obtain permission or clearly report that the export is unsupported. `allowed` still requires respecting the recorded terms and attribution. These fields document rights, not legal verification by automation.
 
-DDS is intentionally an unpublished diagnostic example for #1. Approved club artwork, reusable editable templates and visual acceptance belong to #2; generalized contribution tooling to #3; selecting and saving collections in TrackDraw to trackdraw#886. No current consumer or production bucket is changed simply by creating these manifests.
+DDS is the template pilot from #2 and stays `example` (unpublished) until its artwork is approved for publication. Generalized contribution tooling belongs to #3; selecting and saving collections in TrackDraw to trackdraw#886. No current consumer or production bucket is changed simply by creating these manifests.
