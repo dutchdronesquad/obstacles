@@ -21,6 +21,17 @@ Every manifest requires:
 
 A texture identity is the pair `(collection id, texture id)`. Each panel maps to a `textures/<filename>.webp` path in source manifests. Publication converts it to an origin-relative public path such as `/multigp/large-top-multigp.webp`. Consumer manifests have the same fields but public panel paths; do not feed them back into the source validator. Metadata contains no executable code, geometry or arbitrary remote texture URLs.
 
+## Panel images
+
+`npm run assets:check` (`scripts/check-collections.mjs`) decodes every runtime file and judges it by content, not extension. Rules per referenced panel, from `panelImages` and `limits` in `scripts/collections.mjs`:
+
+- WebP content, 64–4096 px per edge, at most 512 KiB.
+- Width/height within 1% of the rendered surface: `gate-standard-v1` sides 1:5 and top 7:1, `gate-championship-v1` sides 1:4 and top 5:1, `corner-flag-v1` 0.18:0.92, `hurdle-v1` 2:1.
+- Gate and hurdle panels render without transparency, so every pixel needs alpha 192 or more (at most about 25% transparent). Corner flags need transparent pixels outside their outline.
+- Every template sheet (an SVG with `data-template`) in `collections/<id>/source/` must still match its exported textures. Other SVGs there, such as original logos, are kept as editable originals and not exported.
+
+The upload script runs the same checks on committed files before publishing anything.
+
 ## Template compatibility and orientation
 
 These template IDs identify existing artwork slots, not universal compatibility with every shape of the same kind. A consumer must explicitly implement the matching template before offering it. Physical dimensions and procedural geometry remain in TrackDraw/viewer. The current gate mappings correspond to the existing standard 5x5 and championship 7x6 panel-frame visuals; this first contract does not advertise ladder, dive-gate or launch-gate compatibility just because they reuse images.

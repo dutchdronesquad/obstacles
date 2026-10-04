@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Klaas Schoute
 
 import { execFileSync } from 'node:child_process';
-import { readdirSync, readFileSync } from 'node:fs';
-import { pathToFileURL } from 'node:url';
+import { readdirSync } from 'node:fs';
+import sharp from 'sharp';
 
 // Versioned artwork slots, not geometry or executable renderer definitions.
 export const templates = {
@@ -14,6 +14,14 @@ export const templates = {
 };
 // Templates whose back faces are unprinted and may take a solid backColor.
 export const backColorTemplates = new Set(['gate-standard-v1', 'gate-championship-v1']);
+// Panel width/height of the rendered surface, and whether its alpha is ignored (opaque) or required (cut-out).
+export const panelImages = {
+  'gate-standard-v1': { left: 1 / 5, right: 1 / 5, top: 7, alpha: 'opaque' },
+  'gate-championship-v1': { left: 1 / 4, right: 1 / 4, top: 5, alpha: 'opaque' },
+  'corner-flag-v1': { front: 0.18 / 0.92, back: 0.18 / 0.92, alpha: 'cut-out' },
+  'hurdle-v1': { front: 2, alpha: 'opaque' },
+};
+export const limits = { aspectTolerance: 0.01, minEdge: 64, maxEdge: 4096, maxBytes: 512 * 1024, minOpaqueAlpha: 192, sourceDriftPixels: 20 };
 const slug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const texturePath = /^textures\/[A-Za-z0-9][A-Za-z0-9._-]*\.webp$/;
 function fail(where, message) { throw new Error(`${where}: ${message}`); }
@@ -101,17 +109,65 @@ export function publicationFiles(files, read) {
   }];
 }
 
-export function committedPublicationFiles() {
+// Decodes every runtime WebP and checks referenced panels against their template's image rules.
+export async function checkImages(files, read) {
+  for (const file of files) if (/^collections\/[^/]+\/textures\/.+\//.test(file)) fail(file, 'texture folders must be flat; move the file into textures/');
+  const runtime = files.filter(file => /^collections\/[^/]+\/textures\/[^/]+\.webp$/.test(file));
+  const decoded = new Map();
+  for (const file of runtime) {
+    const bytes = read(file);
+    let image;
+    try {
+      const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const metadata = await sharp(bytes).metadata();
+      let minAlpha = 255;
+      for (let i = 3; i < data.length; i += 4) if (data[i] < minAlpha) minAlpha = data[i];
+      image = { format: metadata.format, width: info.width, height: info.height, bytes: bytes.length, minAlpha };
+    } catch (error) { fail(file, `cannot decode image: ${error.message}`); }
+    if (image.format !== 'webp') fail(file, `expected WebP content, found ${image.format}`);
+    decoded.set(file, image);
+  }
+  let checked = 0;
+  for (const file of files.filter(file => /^collections\/[^/]+\/manifest\.json$/.test(file))) {
+    const id = file.split('/')[1];
+    const manifest = JSON.parse(read(file).toString());
+    for (const entry of manifest.textures) {
+      const rules = panelImages[entry.template];
+      for (const [panel, texture] of Object.entries(entry.panels)) {
+        const where = `collections/${id}/${texture} (${entry.id}.${panel})`;
+        const image = decoded.get(`collections/${id}/${texture}`);
+        if (!image) fail(where, 'missing runtime texture');
+        const { width, height } = image;
+        if (Math.min(width, height) < limits.minEdge || Math.max(width, height) > limits.maxEdge) {
+          fail(where, `${width}x${height} px is outside ${limits.minEdge}-${limits.maxEdge} px per edge`);
+        }
+        const expected = rules[panel];
+        if (Math.abs(width / height / expected - 1) > limits.aspectTolerance) {
+          const suggestion = expected >= 1 ? `${width}x${Math.round(width / expected)}` : `${Math.round(height * expected)}x${height}`;
+          fail(where, `${width}x${height} px does not match the ${entry.template} ${panel} proportions; use for example ${suggestion} px`);
+        }
+        if (image.bytes > limits.maxBytes) fail(where, `${Math.ceil(image.bytes / 1024)} KiB exceeds ${limits.maxBytes / 1024} KiB`);
+        const { minAlpha } = image;
+        if (rules.alpha === 'opaque' && minAlpha < limits.minOpaqueAlpha) fail(where, 'contains transparent pixels; this panel renders without transparency, so fill the background');
+        if (rules.alpha === 'cut-out' && minAlpha > 0) fail(where, 'has no transparent pixels; keep everything outside the outline transparent');
+        checked++;
+      }
+    }
+  }
+  return { decoded: decoded.size, checked };
+}
+
+export function committedTree() {
   const entries = execFileSync('git', ['ls-tree', '-r', 'HEAD'], { encoding: 'utf8' }).trim().split('\n');
   const files = entries.map(entry => {
     const [info, file] = entry.split('\t');
     if (file?.startsWith('collections/') && !info.startsWith('100644 ') && !info.startsWith('100755 ')) fail(file, 'expected regular committed file');
     return file;
   }).filter(Boolean);
-  return publicationFiles(files, file => execFileSync('git', ['show', `HEAD:${file}`], { maxBuffer: 16 * 1024 * 1024 }));
+  return { files, read: file => execFileSync('git', ['show', `HEAD:${file}`], { maxBuffer: 16 * 1024 * 1024 }) };
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const files = publicationFiles(workingTreeFiles(), file => readFileSync(file));
-  console.log(`Validated collections; ${files.length} public files (examples excluded).`);
+export function committedPublicationFiles() {
+  const { files, read } = committedTree();
+  return publicationFiles(files, read);
 }

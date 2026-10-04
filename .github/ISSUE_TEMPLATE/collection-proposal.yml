@@ -1,0 +1,56 @@
+name: Club texture collection
+description: Propose artwork for obstacles TrackDraw already supports.
+title: "collection: <organization name>"
+labels: [new-feature]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing artwork! See [CONTRIBUTING.md](https://github.com/dutchdronesquad/obstacles/blob/main/CONTRIBUTING.md) and the [template guide](https://github.com/dutchdronesquad/obstacles/blob/main/templates/README.md). New obstacle shapes are a TrackDraw feature and cannot be added here.
+  - type: input
+    id: organization
+    attributes:
+      label: Club or organization
+      description: Name and website or social profile.
+    validations:
+      required: true
+  - type: input
+    id: slug
+    attributes:
+      label: Collection slug
+      description: Lowercase letters, digits and hyphens, for example `dds`. It becomes `collections/<slug>/` and the public URL prefix.
+    validations:
+      required: true
+  - type: dropdown
+    id: templates
+    attributes:
+      label: Obstacle templates
+      multiple: true
+      options:
+        - "gate-standard-v1: standard 5x5 gate"
+        - "corner-flag-v1: corner flag (front and back)"
+    validations:
+      required: true
+  - type: textarea
+    id: artwork
+    attributes:
+      label: Artwork and sources
+      description: What you plan to show, who made it, and where logos come from. Attach sketches or references if you have them.
+    validations:
+      required: true
+  - type: textarea
+    id: rights
+    attributes:
+      label: Usage terms
+      description: The terms for the manifest `usage.terms`, and whether TrackDraw may include the artwork in portable/offline exports (`usage.portable`).
+    validations:
+      required: true
+  - type: checkboxes
+    id: permission
+    attributes:
+      label: Permission
+      options:
+        - label: I own this artwork or have permission from the rights holder to publish it here under the terms above.
+          required: true
+        - label: The artwork does not copy MultiGP or other third-party branding without permission.
+          required: true

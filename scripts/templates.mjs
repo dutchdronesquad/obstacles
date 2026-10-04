@@ -5,7 +5,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
-import { templates } from './collections.mjs';
+import { limits, templates, workingTreeFiles } from './collections.mjs';
 
 // Editable sheet regions per template; sheet units are 1/100 ft for gates.
 export const templateSheets = {
@@ -25,7 +25,6 @@ export const templateSheets = {
     },
   },
 };
-export const limits = { maxEdge: 4096, maxBytes: 512 * 1024 };
 
 const hideGuides = '#guides{display:none !important}';
 const hideText = 'text{display:none !important}';
@@ -72,19 +71,51 @@ export async function exportSheet(svg, where) {
   return { template, panels };
 }
 
+const sheetSource = /^collections\/[a-z0-9-]+\/source\/[A-Za-z0-9][A-Za-z0-9._-]*\.svg$/;
+// Other SVGs in source/ (such as original logos) are kept as editable originals, not exported.
+export const isTemplateSheet = svg => /<svg\b[^>]*\sdata-template="/.test(svg.replace(/<!--[\s\S]*?-->/g, ''));
+export function textureFile(source, panel) {
+  return source.replace(/\/source\/([^/]+)\.svg$/, (_, name) => `/textures/${name}-${panel}.webp`);
+}
+
+// Fails when committed textures no longer match an export of their editable SVG source.
+export async function checkSources(files, read) {
+  const available = new Set(files);
+  const sources = files.filter(file => sheetSource.test(file) && isTemplateSheet(read(file).toString()));
+  for (const source of sources) {
+    const { panels } = await exportSheet(read(source).toString(), source);
+    for (const [panel, bytes] of Object.entries(panels)) {
+      const texture = textureFile(source, panel);
+      if (!available.has(texture)) fail(source, `missing ${texture}; run npm run textures:export`);
+      const committed = await sharp(read(texture)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      const exported = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+      if (committed.info.width !== exported.info.width || committed.info.height !== exported.info.height) {
+        fail(texture, `is ${committed.info.width}x${committed.info.height} px but ${source} exports ${exported.info.width}x${exported.info.height} px; run npm run textures:export`);
+      }
+      // Export is lossless with pinned renderers; allow only stray anti-aliasing pixels, not edited artwork.
+      let changed = 0;
+      for (let i = 0; i < committed.data.length; i += 4) {
+        if ([0, 1, 2, 3].some(c => Math.abs(committed.data[i + c] - exported.data[i + c]) > 16)) changed++;
+      }
+      if (changed > limits.sourceDriftPixels) fail(texture, `out of date with ${source} (${changed} pixels differ); run npm run textures:export`);
+    }
+  }
+  return sources.length;
+}
+
 // Writes collections/<id>/textures/<source name>-<panel>.webp next to collections/<id>/source/.
 export async function exportFile(file) {
   const absolute = path.resolve(process.env.INIT_CWD ?? '.', file);
-  if (!/^collections\/[a-z0-9-]+\/source\/[A-Za-z0-9][A-Za-z0-9._-]*\.svg$/.test(path.relative(root, absolute).split(path.sep).join('/'))) {
+  if (!sheetSource.test(path.relative(root, absolute).split(path.sep).join('/'))) {
     fail(file, 'file must be at collections/<id>/source/<name>.svg; copy the shared template there first');
   }
   file = absolute;
   const { template, panels } = await exportSheet(readFileSync(file, 'utf8'), file);
   const directory = path.join(path.dirname(file), '..', 'textures');
   mkdirSync(directory, { recursive: true });
-  const name = path.basename(file, '.svg');
   const written = Object.entries(panels).map(([panel, bytes]) => {
-    const output = path.join(directory, `${name}-${panel}.webp`);
+    const output = path.join(directory, `${path.basename(file, '.svg')}-${panel}.webp`);
+    if (path.resolve(output) === file) fail(file, 'refusing to overwrite the source');
     writeFileSync(output, bytes);
     return output;
   });
@@ -93,11 +124,15 @@ export async function exportFile(file) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    const files = process.argv.slice(2);
-    if (!files.length) fail('textures:export', 'usage: npm run textures:export -- collections/<id>/source/<name>.svg');
+    let files = process.argv.slice(2);
+    // Without arguments, regenerate every editable source in every collection.
+    if (!files.length) {
+      files = workingTreeFiles(path.join(root, 'collections'))
+        .filter(file => sheetSource.test(path.relative(root, file).split(path.sep).join('/')) && isTemplateSheet(readFileSync(file, 'utf8')));
+    }
     for (const file of files) {
       const { template, written } = await exportFile(file);
-      console.log(`${file} (${template}):\n${written.map(output => `  ${path.relative(root, output)}`).join('\n')}`);
+      console.log(`${path.relative(root, path.resolve(process.env.INIT_CWD ?? '.', file))} (${template}):\n${written.map(output => `  ${path.relative(root, output)}`).join('\n')}`);
     }
   } catch (error) {
     console.error(error.message);
