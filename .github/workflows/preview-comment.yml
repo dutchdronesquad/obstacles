@@ -1,0 +1,43 @@
+name: Preview comment
+# Runs trusted code from the default branch with write access; the check run's artifact is treated as untrusted data.
+on:
+  workflow_run:
+    workflows: [Check assets]
+    types: [completed]
+permissions: {}
+concurrency:
+  group: pr-previews
+  cancel-in-progress: false
+jobs:
+  comment:
+    if: github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out default branch
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Download previews
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: texture-previews
+          path: incoming
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - name: Publish previews and update the pull request comment
+        run: node scripts/preview-comment.mjs update incoming
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}

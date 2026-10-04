@@ -24,10 +24,10 @@ Clubs and brands can add artwork for obstacles TrackDraw already supports. You d
    ```
 
    `assets:check` generates the panels from your sheets and validates the manifest, proportions, transparency and size limits; every failure names the file and what to change. Open `previews/<organization-slug>.png` to see every panel where it appears on the obstacle, with its top edge marked and the unprinted back.
-4. **Open a pull request** with your manifest, README and SVG sheets, and fill in the checklist. CI runs the same checks and attaches the contact sheets as the `texture-previews` artifact.
+4. **Open a pull request** with your manifest, README and SVG sheets, and fill in the checklist. CI runs the same checks and posts one comment on the pull request with the result, any errors, 3D renders of each texture set in TrackDraw's viewer (front, turned and back) and the contact sheet. Every push updates that comment.
 
 ## Review and publication
 
-A maintainer checks the rights information, reviews the contact sheet, and checks the texture set in TrackDraw's 3D view: front placement, left/right, reading direction, the back, and a rotated view. Once approved, the maintainer sets `"status": "published"`. Merging to `main` then generates and uploads the textures, the manifest and the updated `collections.json` with the existing publish workflow.
+A maintainer checks the rights information and reviews the preview comment: front placement, left/right, reading direction, the back, and a rotated view. Once approved, the maintainer sets `"status": "published"`. Merging to `main` then generates and uploads the textures, the manifest and the updated `collections.json` with the existing publish workflow.
 
 Published files keep their URLs. To fix artwork compatibly, edit the same sheet; its panels are regenerated under the same file names. A change that alters the panel mapping or the meaning of the artwork needs a new sheet (a new texture ID), with the old sheet kept. See the [collection contract](docs/collection-contract.md#discovery-and-publication).

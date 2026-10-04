@@ -49,7 +49,7 @@ The DDS standard gate in [`collections/dds`](../collections/dds/README.md) was m
 
 That is all: the panels are generated from the sheet. `npm run assets:check` and CI hide the guides, crop each panel region, check it, and add the texture set to the collection manifest; publication uploads the generated WebP files. You never commit WebP files or edit panel paths. A sheet with live text, linked files, flowed text, a missing `artwork` or `guides` layer or template ID, a resized page, or a panel over 512 KiB fails with a message naming the problem.
 
-To look at the result locally, run `npm run textures:preview -- <organization-slug>` for the contact sheet, or `npm run textures:build -- --examples` to write the exact files that would be published to `build/` (useful as a local asset folder for TrackDraw). Maintainers do the final 3D check, including the back and a rotated view.
+In a pull request, CI comments with 3D renders and the contact sheet. To look at the result locally, run `npm run textures:preview -- <organization-slug>` for the contact sheet (add `--3d` for the renders after `npx playwright install chromium`), or `npm run textures:build -- --examples` to write the exact files that would be published to `build/` (useful as a local asset folder for TrackDraw).
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for submitting the result.
 
