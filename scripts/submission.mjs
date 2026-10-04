@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const fields = { organization: 'Organization', artwork: 'Template sheets', usage: 'Usage', notes: 'Notes' };
+export const fields = { organization: 'Organization', slug: 'Short name', artwork: 'Template sheets', usage: 'Usage', notes: 'Notes' };
 // Each usage choice maps to manifest terms; the artwork always stays the organization's property.
 export const usageChoices = {
   'In TrackDraw only': { portable: 'not-granted', scope: 'in TrackDraw and compatible viewers' },
@@ -49,12 +49,17 @@ const singleLine = (value, label) => {
 };
 
 // Pure: validated form values and downloaded sheets in, repository files out.
+// existing: [{ id, name }] of the collections already in the repository.
 export function buildSubmission({ values, sheets, issue, existing = [] }) {
   const name = singleLine(values.organization, 'Organization');
-  // The slug only appears in URLs; a maintainer can still change it in the pull request.
-  const slug = slugify(name);
-  if (!slugPattern.test(slug)) fail('Could not make a web-friendly name from the organization; add one under Notes and a maintainer will continue.');
-  if (existing.includes(slug)) fail(`A collection named \`${slug}\` already exists. To update it, mention that under Notes and a maintainer will help.`);
+  // The short name only appears in URLs; without one it is derived from the organization name.
+  const requested = values.slug.trim().replace(/^`|`$/g, '');
+  const slug = requested ? requested.toLowerCase() : slugify(name);
+  if (requested && (!slugPattern.test(slug) || slug.length > 40)) fail('The short name must be at most 40 lowercase letters, digits and hyphens, for example `dds`.');
+  if (!slugPattern.test(slug)) fail('Could not make a short name from the organization; fill in "Short name", for example `dds`.');
+  const sameName = existing.find(collection => collection.name.trim().toLowerCase() === name.toLowerCase());
+  if (sameName) fail(`${name} already has a collection, \`${sameName.id}\`. To update it, mention that under Notes and a maintainer will help.`);
+  if (existing.some(collection => collection.id === slug)) fail(`The short name \`${slug}\` is already taken; choose another one under "Short name".`);
   const usage = usageChoices[values.usage];
   if (!usage) fail('Choose where the artwork may be used.');
   if (!sheets.length) fail('Attach at least one template sheet (.svg) under "Template sheets".');
@@ -118,7 +123,8 @@ async function prepare(output) {
     const urls = attachmentUrls(values.artwork);
     const sheets = [];
     for (const url of urls.slice(0, limits.sheets + 1)) sheets.push(await download(url));
-    const existing = readdirSync('collections');
+    const existing = readdirSync('collections').filter(id => existsSync(`collections/${id}/manifest.json`))
+      .map(id => ({ id, name: String(JSON.parse(readFileSync(`collections/${id}/manifest.json`, 'utf8')).name ?? '') }));
     const submission = buildSubmission({ values, sheets, issue, existing });
     for (const [file, content] of submission.files) {
       mkdirSync(path.join(output, path.dirname(file)), { recursive: true });

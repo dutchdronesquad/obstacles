@@ -9,7 +9,7 @@ import { attachmentUrls, buildSubmission, checkPrepared, fields, parseIssueForm,
 
 const body = (overrides = {}) => {
   const values = {
-    organization: 'Example Racing',
+    organization: 'Example Racing', slug: '_No response_',
     artwork: '<img width="200" alt="gate" src="https://github.com/user-attachments/assets/1f2e3d4c-aaaa-bbbb-cccc-123456789abc" />\n[flag.svg](https://github.com/user-attachments/files/123456/flag.svg)',
     usage: 'In TrackDraw only', notes: '_No response_', ...overrides,
   };
@@ -18,6 +18,7 @@ const body = (overrides = {}) => {
 const sheet = async (template, attributes = '') =>
   (await readFile(`templates/${template}.svg`, 'utf8')).replace(`data-template="${template}"`, `data-template="${template}"${attributes}`);
 const issue = { number: 42, author: 'racing-member' };
+const existing = [{ id: 'dds', name: 'Dutch Drone Squad' }, { id: 'multigp', name: 'MultiGP' }];
 
 test('the issue form matches the parser: same labels and usage choices', async () => {
   const form = await readFile('.github/ISSUE_TEMPLATE/submit-collection.yml', 'utf8');
@@ -40,7 +41,7 @@ test('issue bodies are parsed into values and attachment URLs', () => {
 
 test('a submission becomes a complete collection that passes the checks', async () => {
   const sheets = [await sheet('gate-standard-v1', ' data-name="Main gate" data-back-color="#112233"'), await sheet('gate-standard-v1'), await sheet('corner-flag-v1')];
-  const submission = buildSubmission({ values: parseIssueForm(body({ notes: 'Website: https://example.test' })), sheets, issue, existing: ['dds', 'multigp'] });
+  const submission = buildSubmission({ values: parseIssueForm(body({ notes: 'Website: https://example.test' })), sheets, issue, existing });
   assert.equal(submission.slug, 'example-racing');
   assert.deepEqual(submission.ids, ['main-gate', 'standard-gate', 'corner-flag']);
   assert.deepEqual([...submission.files.keys()].sort(), [
@@ -74,8 +75,14 @@ test('problems are reported in words the submitter can act on', async () => {
   const values = parseIssueForm(body());
   const gate = await sheet('gate-standard-v1');
   const build = (changes, sheets = [gate], existing = []) => () => buildSubmission({ values: { ...values, ...changes }, sheets, issue, existing });
-  assert.throws(build({ organization: '東京' }), /Could not make a web-friendly name/);
-  assert.throws(build({}, [gate], ['example-racing']), /`example-racing` already exists/);
+  assert.throws(build({ organization: '東京' }), /fill in "Short name"/);
+  assert.equal(build({ organization: '東京', slug: 'tokyo' })().slug, 'tokyo');
+  assert.equal(build({ organization: 'Dutch Drone Squad Juniors', slug: '`ddsj`' }, [gate], existing)().slug, 'ddsj');
+  assert.throws(build({}, [gate], [{ id: 'example-racing', name: 'Someone else' }]), /short name `example-racing` is already taken/);
+  assert.throws(build({ organization: 'dutch drone squad' }, [gate], existing), /dutch drone squad already has a collection, `dds`/);
+  assert.throws(build({ organization: 'New Racing', slug: 'dds' }, [gate], existing), /short name `dds` is already taken/);
+  assert.throws(build({ slug: 'Not Valid!' }), /at most 40 lowercase letters/);
+  assert.throws(build({ slug: 'a'.repeat(41) }), /at most 40 lowercase letters/);
   assert.throws(build({ organization: ' ' }), /Organization is required/);
   assert.throws(build({ usage: '' }), /Choose where the artwork may be used/);
   assert.throws(build({}, []), /Attach at least one template sheet/);

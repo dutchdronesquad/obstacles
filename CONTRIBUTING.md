@@ -14,7 +14,7 @@ No git, Node.js or command line needed.
 
 1. **Download a template.** [`gate-standard-v1.svg`](templates/gate-standard-v1.svg) for the standard 5x5 gate or [`corner-flag-v1.svg`](templates/corner-flag-v1.svg) for the corner flag.
 2. **Design.** Open it in [Inkscape](https://inkscape.org/) (free) and draw on the Artwork layer; the [template guide](templates/README.md) explains orientation, safe areas and what to avoid. Save one file per texture set.
-3. **Submit.** [Open a "Submit obstacle artwork" issue](../../issues/new?template=submit-collection.yml), enter your organization's name, drag your `.svg` files into the form, and choose where the artwork may be used. The collection's web name, credits and usage terms are filled in for you; a maintainer can adjust them in the pull request.
+3. **Submit.** [Open a "Submit obstacle artwork" issue](../../issues/new?template=submit-collection.yml), enter your organization's name and optionally a short name for web addresses (such as `dds`), drag your `.svg` files into the form, and choose where the artwork may be used. Credits and usage terms are filled in for you; a maintainer can adjust them in the pull request.
 
 A maintainer checks the submission and adds the `accepted-submission` label. A bot then creates the collection, opens a pull request and links it in your issue; the pull request shows 3D renders of your artwork in TrackDraw's viewer. If something needs fixing, the bot explains it in the issue.
 

@@ -14,6 +14,11 @@ body:
       description: Your club, chapter, league, team or brand, as shown in TrackDraw.
     validations:
       required: true
+  - type: input
+    id: slug
+    attributes:
+      label: Short name
+      description: Optional. Used in web addresses, for example `dds`. Leave empty to derive it from the organization name.
   - type: textarea
     id: artwork
     attributes:
