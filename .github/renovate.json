@@ -1,0 +1,12 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["github>dutchdronesquad/.github:renovate-node"],
+  "packageRules": [
+    {
+      "description": "These render the generated textures and the 3D previews; review a preview before merging.",
+      "matchPackageNames": ["sharp", "@trackdraw/viewer"],
+      "groupName": null,
+      "automerge": false
+    }
+  ]
+}
