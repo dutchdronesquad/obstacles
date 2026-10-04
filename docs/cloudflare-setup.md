@@ -5,7 +5,7 @@
 In the Cloudflare account that owns `trackdraw.app`:
 
 1. Under **R2 Object Storage**, create a Standard bucket named **`trackdraw-assets`**, using the default jurisdiction (a Western Europe location hint is fine).
-2. Open the bucket's **Settings → Custom Domains → Add**. Connect **`assets.trackdraw.app`**, the main hostname, and **`obstacles.trackdraw.app`**, the legacy hostname that published consumers such as `@trackdraw/viewer` 1.0.0 still use. Wait until both are **Active**. Leave the `r2.dev` development URL disabled. A custom domain can belong to one bucket only; move `obstacles.trackdraw.app` from the former `trackdraw-obstacles` bucket once the first publish to `trackdraw-assets` has run.
+2. Open the bucket's **Settings → Custom Domains → Add**. Connect **`assets.trackdraw.app`** and wait until its status is **Active**. Leave the `r2.dev` development URL disabled.
 3. Under **Settings → CORS Policy**, paste the complete contents of [`cors.json`](../cors.json) in the JSON tab (dashboard format; Wrangler uses a different schema). This permits public GET/HEAD from browser viewers on any domain, without credentials.
 4. Copy this account's **Account ID** for the GitHub environment below. No local Wrangler login is needed for GitHub Actions.
 
@@ -13,7 +13,7 @@ Cloudflare references: [custom domains](https://developers.cloudflare.com/r2/buc
 
 ## Automatic publishing
 
-Every push to `main` runs **Publish assets**: a job without secrets validates the collections, renders template sheets and builds the public files; a `production` job uploads those bytes (WebP files, then JSON manifests, then the discovery index); a third job verifies bytes, content type, CORS and cache headers on every hostname. No release or tag is required. GitHub serializes publishing runs; each run checks out the current default branch so an older queued run cannot restore older assets.
+Every push to `main` runs **Publish assets**: a job without secrets validates the collections, renders template sheets and builds the public files; a `production` job uploads those bytes (WebP files, then JSON manifests, then the discovery index); a third job verifies bytes, content type, CORS and cache headers. No release or tag is required. GitHub serializes publishing runs; each run checks out the current default branch so an older queued run cannot restore older assets.
 
 ### One-time GitHub configuration
 
@@ -46,7 +46,7 @@ The package is private and is not published to npm. Legacy version-prefixed obje
 
 ## Troubleshooting cache verification
 
-If uploads succeed but verification reports `max-age=14400` instead of `max-age=300`, Cloudflare is overriding the object cache header. In the `trackdraw.app` zone, add a Cache Rule matching `http.host in {"assets.trackdraw.app" "obstacles.trackdraw.app"}` and set **Browser TTL → Respect origin**. Ensure no later matching rule overrides this setting, and leave Edge TTL respecting the origin headers too. Alternatively, the zone-wide **Caching → Configuration → Browser Cache TTL → Respect Existing Headers** setting applies to the entire zone. Prefer the hostname-specific rule to avoid changing other applications.
+If uploads succeed but verification reports `max-age=14400` instead of `max-age=300`, Cloudflare is overriding the object cache header. In the `trackdraw.app` zone, add a Cache Rule matching `http.host eq "assets.trackdraw.app"` and set **Browser TTL → Respect origin**. Ensure no later matching rule overrides this setting, and leave Edge TTL respecting the origin headers too. Alternatively, the zone-wide **Caching → Configuration → Browser Cache TTL → Respect Existing Headers** setting applies to the entire zone. Prefer the hostname-specific rule to avoid changing other applications.
 
 Then rerun **Publish assets**. The verifier requests a fresh URL; existing browser caches can retain the old four-hour lifetime until it expires. See [Cloudflare Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
 

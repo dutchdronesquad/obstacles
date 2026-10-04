@@ -11,8 +11,6 @@ import { pathToFileURL } from 'node:url';
 
 export const bucket = 'trackdraw-assets';
 export const origin = 'https://assets.trackdraw.app';
-// Older hostnames attached to the same bucket; published consumers still use them.
-export const legacyOrigins = ['https://obstacles.trackdraw.app'];
 
 // Public files from committed HEAD bytes, including textures generated from template sheets.
 // Loaded lazily: publishing from a build directory needs no image libraries.

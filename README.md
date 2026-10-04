@@ -48,7 +48,7 @@ The production URL is:
 https://assets.trackdraw.app/multigp/large-top-multigp.webp
 ```
 
-`https://obstacles.trackdraw.app` serves the same files from the same bucket and stays available for consumers that already use it, such as `@trackdraw/viewer` 1.0.0. New consumers should use `assets.trackdraw.app`. Use `/<organization>/<filename>.webp`. These are stable, shared URLs: compatible artwork improvements update all consumers automatically. Changes requiring different rendering must use a new filename and keep the old file available. No asset version or consumer version bump is needed for compatible updates.
+Use `/<organization>/<filename>.webp`. These are stable, shared URLs: compatible artwork improvements update all consumers automatically. Changes requiring different rendering must use a new filename and keep the old file available. No asset version or consumer version bump is needed for compatible updates.
 
 Runtime filenames retain their original case. Consumers need no API key. Runtime WebP textures, collection manifests and the discovery index are uploaded; source GLBs and maintenance PNGs remain in Git. Browser and CDN caching is five minutes (`public, max-age=300, must-revalidate`), so updates need no cache purge. Custom Cloudflare cache rules must not override this TTL. Uploads overwrite matching keys but do not delete other bucket objects.
 

@@ -245,15 +245,3 @@ test('upload and verify from a build directory load without image libraries', ()
     execFileSync(process.execPath, ['--import', hook, '--input-type=module', '-e', `await import(${JSON.stringify(new URL(`../scripts/${script}`, import.meta.url).href)})`]);
   }
 });
-
-test('verification covers the main and legacy hostnames', async () => {
-  const { verifyAssets } = await import('../scripts/verify-assets.mjs');
-  const files = [{ key: 'multigp/gate.webp', bytes: Buffer.from('texture') }];
-  const headers = { 'content-type': 'image/webp', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=300, must-revalidate' };
-  const hosts = [];
-  await verifyAssets(files, async url => { hosts.push(new URL(url).host); return new Response('texture', { headers }); });
-  assert.deepEqual(hosts, ['assets.trackdraw.app', 'obstacles.trackdraw.app']);
-  // A legacy hostname still attached to the old bucket serves stale bytes.
-  await assert.rejects(verifyAssets(files, async url => new Response(url.includes('obstacles.') ? 'old' : 'texture', { headers })),
-    /obstacles\.trackdraw\.app\/multigp\/gate\.webp: bytes differ/);
-});
