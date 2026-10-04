@@ -59,9 +59,21 @@ jobs:
           name: submission
           path: submission
       - name: Open pull request or report problems
+        id: open
         run: node scripts/submission.mjs open submission
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      # The dispatched check run cannot trigger the preview-comment workflow, so this job posts the previews.
+      - name: Post previews on the pull request
+        if: steps.open.outputs.sha != ''
+        timeout-minutes: 25
+        run: node scripts/submission.mjs preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: ${{ steps.open.outputs.branch }}
+          HEAD_SHA: ${{ steps.open.outputs.sha }}
+          SINCE: ${{ steps.open.outputs.since }}
