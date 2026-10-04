@@ -1,0 +1,95 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Klaas Schoute
+
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { checkCollections } from '../scripts/check-collections.mjs';
+import { attachmentUrls, buildSubmission, checkPrepared, fields, parseIssueForm, plain } from '../scripts/submission.mjs';
+
+const body = (overrides = {}) => {
+  const values = {
+    organization: 'Example Club', slug: 'example-club', website: 'https://example.test', author: 'Example Club',
+    attribution: 'Logo and artwork by Example Club', terms: 'Artwork remains the property of Example Club.\nNo other use is granted.',
+    portable: 'No', artwork: '<img width="200" alt="gate" src="https://github.com/user-attachments/assets/1f2e3d4c-aaaa-bbbb-cccc-123456789abc" />\n[flag.svg](https://github.com/user-attachments/files/123456/flag.svg)',
+    notes: '_No response_', ...overrides,
+  };
+  return Object.entries(fields).map(([key, label]) => `### ${label}\n\n${values[key]}`).join('\n\n') + '\n\n### Permission\n\n- [X] I own this artwork';
+};
+const sheet = async (template, attributes = '') =>
+  (await readFile(`templates/${template}.svg`, 'utf8')).replace(`data-template="${template}"`, `data-template="${template}"${attributes}`);
+const issue = { number: 42, author: 'club-member' };
+
+test('issue form fields match the submission form labels', async () => {
+  const form = await readFile('.github/ISSUE_TEMPLATE/submit-collection.yml', 'utf8');
+  const labels = [...form.matchAll(/^ {6}label: (.+)$/gm)].map(match => match[1]);
+  for (const label of Object.values(fields)) assert.ok(labels.includes(label), label);
+});
+
+test('issue bodies are parsed into values and attachment URLs', () => {
+  const values = parseIssueForm(body());
+  assert.equal(values.slug, 'example-club');
+  assert.equal(values.notes, '');
+  assert.equal(values.terms, 'Artwork remains the property of Example Club.\nNo other use is granted.');
+  assert.deepEqual(attachmentUrls(values.artwork), [
+    'https://github.com/user-attachments/assets/1f2e3d4c-aaaa-bbbb-cccc-123456789abc',
+    'https://github.com/user-attachments/files/123456/flag.svg',
+  ]);
+  assert.deepEqual(attachmentUrls('see https://evil.test/x.svg and https://github.com/other/repo/raw/x.svg'), []);
+});
+
+test('a submission becomes a complete collection that passes the checks', async () => {
+  const sheets = [await sheet('gate-standard-v1', ' data-name="Main gate" data-back-color="#112233"'), await sheet('gate-standard-v1'), await sheet('corner-flag-v1')];
+  const submission = buildSubmission({ values: parseIssueForm(body()), sheets, issue, existing: ['dds', 'multigp'] });
+  assert.equal(submission.slug, 'example-club');
+  assert.deepEqual(submission.ids, ['main-gate', 'standard-gate', 'corner-flag']);
+  assert.deepEqual([...submission.files.keys()].sort(), [
+    'collections/example-club/README.md', 'collections/example-club/manifest.json',
+    'collections/example-club/source/corner-flag.svg', 'collections/example-club/source/main-gate.svg', 'collections/example-club/source/standard-gate.svg',
+  ]);
+  const manifest = JSON.parse(submission.files.get('collections/example-club/manifest.json'));
+  assert.deepEqual(manifest.usage, { terms: 'Artwork remains the property of Example Club. No other use is granted.', portable: 'not-granted' });
+  assert.equal(manifest.status, 'example');
+  assert.match(submission.files.get('collections/example-club/README.md'), /Submitted by @club-member in #42\./);
+  const files = new Map([...submission.files].map(([file, content]) => [file, Buffer.from(content)]));
+  const result = await checkCollections([...files.keys()], file => files.get(file));
+  assert.equal(result.sources, 3);
+  assert.equal(result.checked, 8);
+  const duplicate = buildSubmission({ values: parseIssueForm(body()), sheets: [await sheet('corner-flag-v1'), await sheet('corner-flag-v1')], issue });
+  assert.deepEqual(duplicate.ids, ['corner-flag', 'corner-flag-2']);
+  const allowed = buildSubmission({ values: parseIssueForm(body({ portable: 'Yes, our usage terms allow it' })), sheets: [await sheet('corner-flag-v1')], issue });
+  assert.equal(JSON.parse(allowed.files.get('collections/example-club/manifest.json')).usage.portable, 'allowed');
+});
+
+test('problems are reported in words the submitter can act on', async () => {
+  const values = parseIssueForm(body());
+  const gate = await sheet('gate-standard-v1');
+  const build = (changes, sheets = [gate], existing = []) => () => buildSubmission({ values: { ...values, ...changes }, sheets, issue, existing });
+  assert.throws(build({ slug: 'Example Club' }), /must use lowercase letters, digits and hyphens/);
+  assert.throws(build({}, [gate], ['example-club']), /already exists/);
+  assert.throws(build({ author: ' ' }), /Artwork author is required/);
+  assert.throws(build({ portable: '' }), /offline exports/);
+  assert.throws(build({}, []), /Attach at least one template sheet/);
+  assert.throws(build({}, Array(11).fill(gate)), /at most 10/);
+  assert.throws(build({}, ['GIF89a...']), /Sheet 1 is not an SVG file/);
+  assert.throws(build({}, ['<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>']), /not one of our template sheets/);
+});
+
+test('the privileged job accepts only expected paths', () => {
+  const ok = [{ file: 'collections/club/manifest.json', bytes: 10 }, { file: 'collections/club/source/main-gate.svg', bytes: 10 }];
+  checkPrepared('club', ok);
+  for (const file of ['collections/club/../multigp/manifest.json', 'collections/other/manifest.json', '.github/workflows/x.yml', 'collections/club/source/x.js', 'collections/club/textures/a.webp']) {
+    assert.throws(() => checkPrepared('club', [...ok, { file, bytes: 10 }]), /unexpected path/);
+  }
+  assert.throws(() => checkPrepared('club', [{ file: 'collections/club/source/a.svg', bytes: 6 * 1024 * 1024 }]), /too large/);
+  assert.throws(() => checkPrepared('../club', ok), /invalid slug/);
+});
+
+test('later fields cannot override earlier ones, and names are neutralised', async () => {
+  const values = parseIssueForm(body({ notes: 'hello\n\n### Collection slug\n\nmultigp' }));
+  assert.equal(values.slug, 'example-club');
+  assert.equal(plain('X closes #3 @org/team `x`'), '`X closes 3 org/team x`');
+  const odd = buildSubmission({ values: parseIssueForm(body()), sheets: [await sheet('corner-flag-v1', ` data-name="ᴬᴮ ${'long '.repeat(40)}"`)], issue });
+  assert.match(odd.ids[0], /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+  assert.ok(odd.ids[0].length <= 60);
+});
