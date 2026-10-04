@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="260" height="511" viewBox="0 0 260 511" data-template="corner-flag-v1">
+  <title>corner-flag-v1 editable texture sheet (front and back as seen by a viewer on each side)</title>
+  <defs>
+    <path id="guide-front-outline" d="M 0 511 V 278 C 0 205 1 160 2 139 C 5 108 9 92 15 78 C 22 60 29 44 38 33 C 56 15 78 6 99.5 5 H 100 V 488 L 0 511 Z"/>
+    <clipPath id="front-shape"><use href="#guide-front-outline"/></clipPath>
+    <clipPath id="back-shape"><use href="#guide-front-outline" transform="translate(260 0) scale(-1 1)"/></clipPath>
+    <marker id="guide-arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#db2777"/>
+    </marker>
+  </defs>
+
+  <!-- Artwork outside the flag outline is transparent and invisible in TrackDraw. -->
+  <g id="artwork" inkscape:groupmode="layer" inkscape:label="Artwork">
+    <g clip-path="url(#front-shape)"><rect id="base-front" x="0" y="0" width="100" height="511" fill="#ffffff"/></g>
+    <g clip-path="url(#back-shape)"><rect id="base-back" x="160" y="0" width="100" height="511" fill="#ffffff"/></g>
+  </g>
+
+  <g id="guides" inkscape:groupmode="layer" inkscape:label="Guides (never exported)" sodipodi:insensitive="true" font-family="sans-serif">
+    <rect x="100" y="0" width="60" height="511" fill="#e2e8f0"/>
+    <g fill="none" stroke="#0891b2" stroke-width="1.5">
+      <rect x="0.75" y="0.75" width="98.5" height="509.5" stroke-dasharray="4 3"/>
+      <rect x="160.75" y="0.75" width="98.5" height="509.5" stroke-dasharray="4 3"/>
+      <use href="#guide-front-outline"/>
+      <use href="#guide-front-outline" transform="translate(260 0) scale(-1 1)"/>
+    </g>
+    <g fill="none" stroke="#475569" stroke-width="6" stroke-linecap="round" opacity="0.5">
+      <path d="M 0 511 V 278 C 0 205 1 160 2 139 C 5 108 9 92 15 78 C 22 60 29 44 38 33 C 56 15 78 6 99.5 5"/>
+      <path d="M 260 511 V 278 C 260 205 259 160 258 139 C 255 108 251 92 245 78 C 238 60 231 44 222 33 C 204 15 182 6 160.5 5"/>
+    </g>
+    <g fill="none" stroke="#db2777" stroke-width="2.5" marker-end="url(#guide-arrow)">
+      <path d="M 70 360 V 200"/>
+      <path d="M 190 360 V 200"/>
+    </g>
+    <g font-size="9" font-weight="bold" fill="#0891b2" text-anchor="middle">
+      <text x="50" y="430">FRONT</text>
+      <text x="50" y="442">slot "front"</text>
+      <text x="210" y="430">BACK</text>
+      <text x="210" y="442">slot "back"</text>
+    </g>
+    <g font-size="8" fill="#0f172a" text-anchor="middle">
+      <text transform="translate(12 380) rotate(-90)">pole</text>
+      <text transform="translate(248 380) rotate(90)">pole</text>
+      <text transform="translate(130 255) rotate(-90)">Each side drawn as seen by a viewer on that side.</text>
+      <text transform="translate(142 255) rotate(-90)">The pole is on the left from the front, right from the back.</text>
+      <text transform="translate(154 255) rotate(-90)">Rendering template, not a manufacturing pattern.</text>
+    </g>
+  </g>
+</svg>

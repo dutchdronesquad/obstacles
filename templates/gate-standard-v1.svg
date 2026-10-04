@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="700" height="600" viewBox="0 0 700 600" data-template="gate-standard-v1">
+  <title>gate-standard-v1 editable texture sheet (front view, 100 units = 1 ft)</title>
+  <defs>
+    <pattern id="guide-hatch" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="20" height="20" fill="#e2e8f0"/>
+      <rect width="4" height="20" fill="#cbd5e1"/>
+    </pattern>
+    <marker id="guide-arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#db2777"/>
+    </marker>
+  </defs>
+
+  <!-- Draw everything that should be printed inside this layer. Replace the base colours freely. -->
+  <g id="artwork" inkscape:groupmode="layer" inkscape:label="Artwork">
+    <rect id="base-top" x="0" y="0" width="700" height="100" fill="#202e5d"/>
+    <rect id="base-left" x="0" y="100" width="100" height="500" fill="#f8fafc"/>
+    <rect id="base-right" x="600" y="100" width="100" height="500" fill="#f8fafc"/>
+  </g>
+
+  <!-- Guides are hidden on export. Keep this layer on top and locked while designing. -->
+  <g id="guides" inkscape:groupmode="layer" inkscape:label="Guides (never exported)" sodipodi:insensitive="true" font-family="sans-serif" fill="#0f172a">
+    <rect x="100" y="100" width="500" height="500" fill="url(#guide-hatch)"/>
+    <g fill="none" stroke="#0891b2" stroke-width="2">
+      <rect x="1" y="1" width="698" height="98"/>
+      <rect x="1" y="101" width="98" height="498"/>
+      <rect x="601" y="101" width="98" height="498"/>
+    </g>
+    <g fill="none" stroke="#db2777" stroke-width="1.5" stroke-dasharray="6 4">
+      <rect x="12" y="12" width="676" height="80"/>
+      <rect x="12" y="108" width="80" height="484"/>
+      <rect x="608" y="108" width="80" height="484"/>
+    </g>
+
+    <g font-size="11" fill="#0891b2" font-weight="bold">
+      <text x="350" y="26" text-anchor="middle">TOP · slot "top" · 7 × 1 ft · texture top edge ↑</text>
+      <text transform="translate(28 350) rotate(-90)" text-anchor="middle">LEFT · slot "left" · 1 × 5 ft</text>
+      <text transform="translate(672 350) rotate(90)" text-anchor="middle">RIGHT · slot "right" · 1 × 5 ft</text>
+    </g>
+    <g fill="none" stroke="#db2777" stroke-width="3" marker-end="url(#guide-arrow)">
+      <path d="M 66 470 V 230"/>
+      <path d="M 634 230 V 470"/>
+    </g>
+    <g font-size="10" fill="#db2777">
+      <text transform="translate(82 350) rotate(-90)" text-anchor="middle">recommended reading direction</text>
+      <text transform="translate(618 350) rotate(90)" text-anchor="middle">recommended reading direction</text>
+      <text x="350" y="86" text-anchor="middle">dashed line = safe area; the frame tube covers the outer edges</text>
+    </g>
+
+    <g font-size="14" text-anchor="middle">
+      <text x="350" y="200" font-size="20" font-weight="bold">FRONT VIEW · gate-standard-v1</text>
+      <text x="350" y="228">Opening 5 × 5 ft · not exported</text>
+      <text x="350" y="272">Drawn as seen when facing the printed side.</text>
+      <text x="350" y="292">Slot "left" appears on your left, "right" on your right.</text>
+      <text x="350" y="336">Only the front is printed. Set backColor in the manifest</text>
+      <text x="350" y="356">to give the back one solid colour (default white and navy).</text>
+      <text x="350" y="400">Each exported panel is exactly its region on this sheet:</text>
+      <text x="350" y="420">no extra rotation or mirroring is needed.</text>
+      <text x="350" y="464">Keep artwork on the Artwork layer. Convert text to paths.</text>
+      <text x="350" y="484">Transparent areas export as white sides and a navy top.</text>
+      <text x="350" y="548" font-size="12" fill="#475569">Rendering template for TrackDraw, not a certified manufacturing pattern.</text>
+      <text x="350" y="566" font-size="12" fill="#475569">Physical panels, seams and print bleed may differ.</text>
+    </g>
+  </g>
+</svg>

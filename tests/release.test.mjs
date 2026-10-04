@@ -178,15 +178,19 @@ test('invalid collection contracts fail with actionable errors before publicatio
     [m => m.textures[0].panels.top = 'textures/missing.webp', /missing panel file/],
     [m => m.usage.portable = true, /usage.portable/],
     [m => m.author = '', /non-empty string/],
+    [m => m.textures[0].backColor = 'navy', /#rrggbb/],
+    [m => { m.textures[0].template = 'hurdle-v1'; m.textures[0].panels = { front: 'textures/gate.webp' }; m.textures[0].backColor = '#000000'; }, /not supported for hurdle-v1/],
   ];
   for (const [change, error] of cases) {
     const manifest = fixtureManifest(); change(manifest);
     assert.throws(() => validateManifest(manifest, 'multigp', files), error);
   }
   assert.throws(() => publicationFiles(['collections/multigp/manifest.json'], () => Buffer.from('{')), /invalid JSON/);
+  const withBack = fixtureManifest(); withBack.textures[0].backColor = '#141c28';
+  assert.equal(validateManifest(withBack, 'multigp', files).textures[0].backColor, '#141c28');
 });
 
-test('DDS example panels decode and remain excluded from publication', async () => {
+test('DDS pilot panels decode and remain excluded from publication', async () => {
   const manifest = JSON.parse(await readFile('collections/dds/manifest.json', 'utf8'));
   assert.equal(manifest.status, 'example');
   for (const file of Object.values(manifest.textures[0].panels)) {
