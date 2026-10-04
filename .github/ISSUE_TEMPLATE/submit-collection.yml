@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Design each texture set on a copy of a [template sheet](https://github.com/dutchdronesquad/obstacles/blob/main/templates/README.md) and attach the saved `.svg` files below. After review, a pull request with 3D previews is opened automatically and linked here.
+        Design each texture set on a copy of a [template sheet](https://github.com/dutchdronesquad/track-assets/blob/main/templates/README.md) and attach the saved `.svg` files below. After review, a pull request with 3D previews is opened automatically and linked here.
   - type: input
     id: organization
     attributes:

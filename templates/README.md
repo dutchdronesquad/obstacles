@@ -51,7 +51,7 @@ That is all: the panels are generated from the sheet. `npm run assets:check` and
 
 In a pull request, CI comments with 3D renders and the contact sheet. To look at the result locally, run `npm run textures:preview -- <organization-slug>` for the contact sheet (add `--3d` for the renders after `npx playwright install chromium`), or `npm run textures:build -- --examples` to write the exact files that would be published to `build/` (useful as a local asset folder for TrackDraw).
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for submitting the result; without git, attach your sheets to a ["Submit obstacle artwork" issue](https://github.com/dutchdronesquad/obstacles/issues/new?template=submit-collection.yml).
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for submitting the result; without git, attach your sheets to a ["Submit obstacle artwork" issue](https://github.com/dutchdronesquad/track-assets/issues/new?template=submit-collection.yml).
 
 ## Rights
 

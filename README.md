@@ -1,4 +1,4 @@
-# TrackDraw obstacle assets
+# Track assets
 
 Source models, artwork and browser-ready textures for drone racing obstacles, together with the scripts used to maintain them. Assets are grouped by the organization or brand they represent. Each collection documents its sources and maintenance workflow in its own directory.
 
