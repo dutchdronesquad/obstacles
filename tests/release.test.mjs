@@ -84,11 +84,11 @@ test('stable URLs use committed HEAD bytes and exclude maintenance files', async
     const uploads = readFileSync('uploaded.jsonl', 'utf8').trim().split('\n').map(line => JSON.parse(line));
     const uploaded = uploads[0];
     assert.equal(uploads.length, 3);
-    assert.ok(uploads[1].args.includes('trackdraw-obstacles/multigp/manifest.json'));
-    assert.ok(uploads[2].args.includes('trackdraw-obstacles/collections.json'));
+    assert.ok(uploads[1].args.includes('trackdraw-assets/multigp/manifest.json'));
+    assert.ok(uploads[2].args.includes('trackdraw-assets/collections.json'));
     assert.ok(uploads[2].args.includes('application/json'));
     assert.ok(uploads.every(upload => upload.args[2] === 'put'));
-    assert.ok(uploaded.args.includes('trackdraw-obstacles/multigp/gate.webp'));
+    assert.ok(uploaded.args.includes('trackdraw-assets/multigp/gate.webp'));
     assert.equal(uploaded.args[uploaded.args.indexOf('--cache-control') + 1], 'public, max-age=300, must-revalidate');
     assert.ok(Buffer.from(uploaded.bytes, 'base64').equals(updatedBytes));
     execFileSync(process.execPath, [script, '--dry-run'], {

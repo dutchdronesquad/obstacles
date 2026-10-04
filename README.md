@@ -42,10 +42,10 @@ TrackDraw consumes the stable hosted texture URLs. Collection discovery is addit
 
 ## Hosted URL contract
 
-The intended production URL is:
+The production URL is:
 
 ```text
-https://obstacles.trackdraw.app/multigp/large-top-multigp.webp
+https://assets.trackdraw.app/multigp/large-top-multigp.webp
 ```
 
 Use `/<organization>/<filename>.webp`. These are stable, shared URLs: compatible artwork improvements update all consumers automatically. Changes requiring different rendering must use a new filename and keep the old file available. No asset version or consumer version bump is needed for compatible updates.

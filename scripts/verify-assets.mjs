@@ -13,13 +13,14 @@ export async function verifyAssets(files, fetchAsset = fetch) {
       headers: { Origin: 'https://trackdraw.app' },
       signal: AbortSignal.timeout(30_000),
     });
-    assert.equal(response.status, 200, asset.key);
-    assert.equal(response.headers.get('content-type'), asset.contentType ?? 'image/webp', asset.key);
-    assert.equal(response.headers.get('access-control-allow-origin'), '*', asset.key);
+    const where = `${origin}/${asset.key}`;
+    assert.equal(response.status, 200, where);
+    assert.equal(response.headers.get('content-type'), asset.contentType ?? 'image/webp', where);
+    assert.equal(response.headers.get('access-control-allow-origin'), '*', where);
     assert.equal(response.headers.get('cache-control'), 'public, max-age=300, must-revalidate',
-      `${asset.key}: unexpected Cache-Control; set Cloudflare Browser TTL to Respect origin. See docs/cloudflare-setup.md.`);
-    assert.ok(Buffer.from(await response.arrayBuffer()).equals(asset.bytes), asset.key);
-    console.log(`Verified ${asset.key}`);
+      `${where}: unexpected Cache-Control; set Cloudflare Browser TTL to Respect origin. See docs/cloudflare-setup.md.`);
+    assert.ok(Buffer.from(await response.arrayBuffer()).equals(asset.bytes), `${where}: bytes differ`);
+    console.log(`Verified ${where}`);
   }
 }
 

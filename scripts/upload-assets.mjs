@@ -9,8 +9,8 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-export const bucket = 'trackdraw-obstacles';
-export const origin = 'https://obstacles.trackdraw.app';
+export const bucket = 'trackdraw-assets';
+export const origin = 'https://assets.trackdraw.app';
 
 // Public files from committed HEAD bytes, including textures generated from template sheets.
 // Loaded lazily: publishing from a build directory needs no image libraries.

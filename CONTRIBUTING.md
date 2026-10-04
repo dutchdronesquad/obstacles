@@ -1,6 +1,6 @@
 # Contributing a texture collection
 
-Any racing organization (a club, chapter, league, team or brand) can add artwork for obstacles TrackDraw already supports. You design from a template, the repository checks your files, a maintainer reviews the artwork, and it is then published to `https://obstacles.trackdraw.app`. New obstacle shapes are a TrackDraw feature and cannot be added here.
+Any racing organization (a club, chapter, league, team or brand) can add artwork for obstacles TrackDraw already supports. You design from a template, the repository checks your files, a maintainer reviews the artwork, and it is then published to `https://assets.trackdraw.app`. New obstacle shapes are a TrackDraw feature and cannot be added here.
 
 ## Before you start
 
