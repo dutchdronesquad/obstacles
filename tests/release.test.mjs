@@ -11,6 +11,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { validateManifest, publicationFiles, workingTreeFiles } from '../scripts/collections.mjs';
 import { assetFiles } from '../scripts/upload-assets.mjs';
+import { checkCollections } from '../scripts/check-collections.mjs';
 
 const expected = [
   '5x10-hurdle-multigp',
@@ -60,12 +61,12 @@ test('stable URLs use committed HEAD bytes and exclude maintenance files', async
     writeFileSync('collections/multigp/manifest.json', JSON.stringify(manifest));
     commit('fixture');
     writeFileSync('collections/multigp/textures/gate.webp', updatedBytes);
-    const files = assetFiles();
+    const files = await assetFiles();
     assert.equal(files.length, 3);
     assert.equal(files[0].key, 'multigp/gate.webp');
     assert.ok(files[0].bytes.equals(committedBytes));
     commit('updated texture');
-    const updated = assetFiles();
+    const updated = await assetFiles();
     assert.equal(updated[0].key, files[0].key);
     assert.ok(updated[0].bytes.equals(updatedBytes));
     mkdirSync('node_modules/wrangler/bin', { recursive: true });
@@ -158,8 +159,7 @@ function fixtureManifest() {
 }
 
 test('both collections validate and publication preserves every historical texture URL', async () => {
-  const files = workingTreeFiles();
-  const result = publicationFiles(files, file => readFileSync(file));
+  const { published: result } = await checkCollections(workingTreeFiles(), file => readFileSync(file));
   const runtime = result.filter(file => file.contentType === 'image/webp');
   assert.deepEqual(runtime.map(file => file.key).sort(), expected.map(name => `multigp/${name}.webp`).sort());
   assert.ok(!result.some(file => file.key.startsWith('dds/')));
@@ -198,14 +198,16 @@ test('invalid collection contracts fail with actionable errors before publicatio
   assert.equal(validateManifest(withBack, 'multigp', files).textures[0].backColor, '#141c28');
 });
 
-test('DDS pilot panels decode and remain excluded from publication', async () => {
-  const manifest = JSON.parse(await readFile('collections/dds/manifest.json', 'utf8'));
+test('DDS pilot texture set is generated from its sheet and stays unpublished', async () => {
+  const { view } = await checkCollections(workingTreeFiles(), file => readFileSync(file));
+  const manifest = JSON.parse(view.read('collections/dds/manifest.json'));
   assert.equal(manifest.status, 'example');
+  assert.deepEqual(manifest.textures.map(({ id, name, template, backColor }) => ({ id, name, template, backColor })),
+    [{ id: 'standard-gate', name: 'Standard gate', template: 'gate-standard-v1', backColor: '#141c28' }]);
   for (const file of Object.values(manifest.textures[0].panels)) {
-    const image = sharp(await readFile(`collections/dds/${file}`));
-    assert.equal((await image.metadata()).format, 'webp');
-    await image.raw().toBuffer();
+    assert.equal((await sharp(view.read(`collections/dds/${file}`)).metadata()).format, 'webp');
   }
+  assert.ok(!(await readdir('collections/dds')).includes('textures'), 'generated textures are never committed');
 });
 
 test('publication rejects orphan textures and validates examples before excluding them', () => {
@@ -216,4 +218,22 @@ test('publication rejects orphan textures and validates examples before excludin
   manifest.status = 'example';
   manifest.textures[0].panels.top = 'textures/missing.webp';
   assert.throws(() => publicationFiles(files.slice(0, 2), read), /missing panel file/);
+});
+
+test('publishing from a build directory uploads only checked files in a safe order', async () => {
+  const { builtFiles } = await import('../scripts/upload-assets.mjs');
+  const directory = mkdtempSync(path.join(tmpdir(), 'obstacles-build-'));
+  try {
+    mkdirSync(path.join(directory, 'org'));
+    writeFileSync(path.join(directory, 'collections.json'), '{}');
+    writeFileSync(path.join(directory, 'org/manifest.json'), '{}');
+    writeFileSync(path.join(directory, 'org/gate-left.webp'), 'webp');
+    assert.deepEqual(builtFiles(directory).map(({ key, contentType }) => [key, contentType]), [
+      ['org/gate-left.webp', 'image/webp'], ['org/manifest.json', 'application/json'], ['collections.json', 'application/json'],
+    ]);
+    writeFileSync(path.join(directory, 'org/run.sh'), 'echo');
+    assert.throws(() => builtFiles(directory), /org\/run\.sh: unexpected file/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });

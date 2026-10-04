@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
 import { workingTreeFiles } from './collections.mjs';
+import { withGeneratedTextures } from './templates.mjs';
 
 // How each panel appears to a viewer, in template units; rotate is the in-plane turn the renderer applies.
 export const previewLayouts = {
@@ -103,18 +104,50 @@ export async function collectionPreview(id, read) {
     .png().toBuffer();
 }
 
+// Adds a caption under a 3D render naming the views from left to right.
+export async function captionRender(png, entry) {
+  const { renderTargets } = await import('./render3d.mjs');
+  const { width, height } = await sharp(png).metadata();
+  const views = renderTargets[entry.template].views.map(([, label]) => label).join(' · ');
+  const note = entry.backColor ? `backColor ${entry.backColor} is not shown until TrackDraw supports it (trackdraw#886).` : '';
+  const caption = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="56" font-family="sans-serif">
+    <rect width="100%" height="100%" fill="#ffffff"/>
+    <text x="16" y="24" font-size="16" font-weight="bold" fill="#0f172a">${esc(`${entry.id} in TrackDraw's 3D viewer, left to right: ${views}`)}</text>
+    <text x="16" y="45" font-size="13" fill="#475569">${esc(note)}</text></svg>`);
+  return sharp({ create: { width, height: height + 56, channels: 3, background: '#ffffff' } })
+    .composite([{ input: png, left: 0, top: 0 }, { input: caption, left: 0, top: height }]).png().toBuffer();
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
+    const args = process.argv.slice(2);
+    const with3d = args.includes('--3d');
     const all = [...new Set(workingTreeFiles(path.join(root, 'collections'))
       .map(file => path.relative(root, file).split(path.sep).join('/'))
       .filter(file => /^collections\/[^/]+\/manifest\.json$/.test(file)).map(file => file.split('/')[1]))].sort();
-    const ids = process.argv.length > 2 ? process.argv.slice(2) : all;
+    const requested = args.filter(arg => arg !== '--3d');
+    const ids = requested.length ? requested : all;
     for (const id of ids) if (!all.includes(id)) throw new Error(`unknown collection ${id}`);
     mkdirSync(path.join(root, 'previews'), { recursive: true });
+    process.chdir(root);
+    const view = await withGeneratedTextures(workingTreeFiles(), file => readFileSync(file));
     for (const id of ids) {
       const output = path.join(root, 'previews', `${id}.png`);
-      writeFileSync(output, await collectionPreview(id, file => readFileSync(path.join(root, file))));
+      writeFileSync(output, await collectionPreview(id, view.read));
       console.log(path.relative(root, output));
+    }
+    if (with3d) {
+      // Needs a Playwright Chromium: npx playwright install chromium
+      const { render3d } = await import('./render3d.mjs');
+      const entries = ids.flatMap(collection => JSON.parse(view.read(`collections/${collection}/manifest.json`).toString()).textures.map(entry => ({ collection, entry })));
+      const renders = await render3d(entries, view.read);
+      for (const { collection, entry } of entries) {
+        const png = renders[`${collection}/${entry.id}`];
+        if (!png) continue;
+        const output = path.join(root, 'previews', `${collection}--${entry.id}--3d.png`);
+        writeFileSync(output, await captionRender(png, entry));
+        console.log(path.relative(root, output));
+      }
     }
   } catch (error) {
     console.error(error.message);

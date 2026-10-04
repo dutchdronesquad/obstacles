@@ -35,7 +35,7 @@ function text(value, where) {
 }
 export function validateManifest(manifest, id, files) {
   const where = `collections/${id}/manifest.json`;
-  object(manifest, where, ['schemaVersion', 'id', 'name', 'status', 'author', 'attribution', 'usage', 'textures']);
+  object(manifest, where, ['schemaVersion', 'id', 'name', 'status', 'author', 'attribution', 'usage'], ['textures']);
   if (manifest.schemaVersion !== 1) fail(where, 'unsupported schemaVersion; expected 1');
   if (!slug.test(id) || manifest.id !== id) fail(where, 'id must match the collection directory slug');
   for (const key of ['name', 'author', 'attribution']) text(manifest[key], `${where}.${key}`);
@@ -43,7 +43,7 @@ export function validateManifest(manifest, id, files) {
   object(manifest.usage, `${where}.usage`, ['terms', 'portable']);
   text(manifest.usage.terms, `${where}.usage.terms`);
   if (!['allowed', 'not-granted'].includes(manifest.usage.portable)) fail(where, 'usage.portable must be allowed or not-granted');
-  if (!Array.isArray(manifest.textures) || !manifest.textures.length) fail(where, 'textures must be a non-empty array');
+  if (!Array.isArray(manifest.textures) || !manifest.textures.length) fail(where, 'no texture sets; add a template sheet to source/ or list textures in the manifest');
   const ids = new Set();
   for (const entry of manifest.textures) {
     object(entry, where, ['id', 'name', 'template', 'panels'], ['backColor']);
@@ -167,7 +167,3 @@ export function committedTree() {
   return { files, read: file => execFileSync('git', ['show', `HEAD:${file}`], { maxBuffer: 16 * 1024 * 1024 }) };
 }
 
-export function committedPublicationFiles() {
-  const { files, read } = committedTree();
-  return publicationFiles(files, read);
-}

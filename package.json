@@ -14,10 +14,12 @@
     "assets:upload": "node scripts/upload-assets.mjs",
     "assets:verify": "node scripts/verify-assets.mjs",
     "assets:check": "node scripts/check-collections.mjs",
-    "textures:export": "node scripts/templates.mjs",
+    "textures:build": "node scripts/build.mjs",
     "textures:preview": "node scripts/preview.mjs"
   },
   "devDependencies": {
+    "@trackdraw/viewer": "1.0.0",
+    "playwright": "1.63.0",
     "sharp": "0.35.4",
     "wrangler": "4.141.0"
   }

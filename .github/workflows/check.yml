@@ -1,5 +1,9 @@
 name: Check assets
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  # Used by the submission workflow, whose pull requests do not trigger pull_request runs.
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -8,6 +12,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
@@ -17,19 +23,36 @@ jobs:
         id: install
         run: npm ci
       - name: Test committed assets
-        run: npm run assets:check && npm test
-      # Render contact sheets for reviewers even when checks fail.
-      - name: Render review contact sheets
-        if: always() && steps.install.outcome == 'success'
-        run: npm run textures:preview
-      - name: Upload contact sheets
-        if: always() && steps.install.outcome == 'success'
+        run: |
+          set -o pipefail
+          mkdir -p previews
+          npm run -s assets:check 2>&1 | tee previews/check-output.txt
+          npm test
+      # Preview the collections this branch changes, also when checks fail.
+      - name: Find changed collections
+        id: changed
+        if: always() && steps.install.outcome == 'success' && github.event_name != 'push'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || 'origin/main' }}
+        run: |
+          ids=$(git diff --name-only "$BASE"...HEAD -- collections | cut -d/ -f2 | grep -E '^[a-z0-9]+(-[a-z0-9]+)*$' | sort -u | while read -r id; do [ -f "collections/$id/manifest.json" ] && echo "$id"; done | tr '\n' ' ')
+          echo "ids=$ids" >> "$GITHUB_OUTPUT"
+      - name: Render contact sheets and 3D views
+        if: always() && steps.changed.outputs.ids != ''
+        env:
+          IDS: ${{ steps.changed.outputs.ids }}
+        run: |
+          npx playwright install --with-deps chromium
+          # IDS holds validated slugs only; word splitting is intended.
+          npm run -s textures:preview -- --3d $IDS
+      - name: Upload previews
+        if: always() && steps.install.outcome == 'success' && github.event_name != 'push'
         uses: actions/upload-artifact@v7
         with:
           name: texture-previews
           path: previews/
           if-no-files-found: ignore
-      - name: Regenerate textures
-        run: npm run assets:multigp:refresh && npm run textures:export
+      - name: Regenerate MultiGP textures
+        run: npm run assets:multigp:refresh
       - name: Test regenerated assets
         run: npm run assets:check && npm test

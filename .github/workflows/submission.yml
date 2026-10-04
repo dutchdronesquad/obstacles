@@ -1,0 +1,67 @@
+name: Submission
+# A maintainer adds the accepted-submission label to a "Submit obstacle artwork" issue.
+on:
+  issues:
+    types: [labeled]
+permissions: {}
+concurrency:
+  group: submission-${{ github.event.issue.number }}
+  cancel-in-progress: false
+jobs:
+  # Downloads and renders the submitted SVGs without write access.
+  prepare:
+    if: github.event.label.name == 'accepted-submission'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # No npm cache and no token here: this job processes untrusted files.
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm ci
+      - name: Prepare collection
+        run: node scripts/submission.mjs prepare submission
+      - name: Upload prepared files
+        uses: actions/upload-artifact@v7
+        with:
+          name: submission
+          path: submission/
+          include-hidden-files: false
+  # Never renders or executes submitted content: writes the prepared files after path checks and opens the pull request.
+  open:
+    needs: prepare
+    # Also runs when prepare crashed, so the issue always hears what happened.
+    if: always() && github.event.label.name == 'accepted-submission'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Download prepared files
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          name: submission
+          path: submission
+      - name: Open pull request or report problems
+        run: node scripts/submission.mjs open submission
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

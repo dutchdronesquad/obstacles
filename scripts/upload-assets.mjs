@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Klaas Schoute
 
-import { checkCollections } from './check-collections.mjs';
-import { committedPublicationFiles, committedTree, publicationFiles } from './collections.mjs';
+import { committedTree } from './collections.mjs';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { lstatSync, readdirSync, readFileSync } from 'node:fs';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -13,19 +13,43 @@ import { pathToFileURL } from 'node:url';
 export const bucket = 'trackdraw-obstacles';
 export const origin = 'https://obstacles.trackdraw.app';
 
-export const assetFiles = committedPublicationFiles;
+// Public files from committed HEAD bytes, including textures generated from template sheets.
+export async function assetFiles() {
+  const { checkCollections } = await import('./check-collections.mjs');
+  const { files, read } = committedTree();
+  return (await checkCollections(files, read)).published;
+}
+
+// Reads a textures:build output without rendering anything: textures first, then manifests, then the index.
+export function builtFiles(directory) {
+  const files = [];
+  const walk = (dir, prefix = '') => readdirSync(dir, { withFileTypes: true }).forEach(entry => {
+    const file = path.join(dir, entry.name), key = `${prefix}${entry.name}`;
+    if (!lstatSync(file).isDirectory() && !lstatSync(file).isFile()) throw new Error(`${key}: only regular files are allowed`);
+    if (entry.isDirectory()) return walk(file, `${key}/`);
+    if (!/^(?:[a-z0-9]+(?:-[a-z0-9]+)*\/(?:[A-Za-z0-9][A-Za-z0-9._-]*\.webp|manifest\.json)|collections\.json)$/.test(key)) throw new Error(`${key}: unexpected file in build output`);
+    files.push({ key, bytes: readFileSync(file), contentType: key.endsWith('.webp') ? 'image/webp' : 'application/json' });
+  });
+  walk(directory);
+  const rank = ({ key }) => (key === 'collections.json' ? 2 : key.endsWith('.json') ? 1 : 0);
+  files.sort((a, b) => rank(a) - rank(b) || a.key.localeCompare(b.key));
+  if (files.at(-1)?.key !== 'collections.json') throw new Error('build output is missing collections.json');
+  return files;
+}
 
 async function main() {
-  const [flag, ...extra] = process.argv.slice(2);
-  if (extra.length || (flag && flag !== '--dry-run')) throw new Error('Only --dry-run is supported.');
-  const { files: committed, read } = committedTree();
-  await checkCollections(committed, read);
-  // Upload exactly the committed bytes that were just checked.
-  const files = publicationFiles(committed, read);
+  const args = process.argv.slice(2);
+  const dryRun = args.includes('--dry-run');
+  const from = args.includes('--from') ? args[args.indexOf('--from') + 1] : undefined;
+  if (args.some((arg, i) => arg !== '--dry-run' && arg !== '--from' && args[i - 1] !== '--from') || (args.includes('--from') && !from)) {
+    throw new Error('usage: upload-assets.mjs [--dry-run] [--from <build directory>]');
+  }
+  // Upload exactly the bytes that were checked: a checked build output, or committed and generated files.
+  const files = from ? builtFiles(from) : await assetFiles();
   for (const asset of files) {
     console.log(`${createHash('sha256').update(asset.bytes).digest('hex')}  ${origin}/${asset.key}`);
   }
-  if (flag === '--dry-run') return;
+  if (dryRun) return;
   if (!process.env.CLOUDFLARE_ACCOUNT_ID) throw new Error('Set CLOUDFLARE_ACCOUNT_ID to the account owning trackdraw.app.');
   const directory = await mkdtemp(path.join(tmpdir(), 'obstacles-upload-'));
   try {

@@ -7,19 +7,18 @@ import { randomBytes } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import sharp from 'sharp';
 import { checkCollections } from '../scripts/check-collections.mjs';
-import { checkImages, limits } from '../scripts/collections.mjs';
-import { exportSheet } from '../scripts/templates.mjs';
+import { checkImages, limits, workingTreeFiles } from '../scripts/collections.mjs';
 
 const image = (width, height, { alpha = 1, format = 'webp' } = {}) =>
   sharp({ create: { width, height, channels: 4, background: { r: 20, g: 28, b: 40, alpha } } })[format]({ lossless: true }).toBuffer();
 const manifest = (template, panels) => Buffer.from(JSON.stringify({
-  schemaVersion: 1, id: 'club', name: 'Club', status: 'example', author: 'Club', attribution: 'Original test artwork',
+  schemaVersion: 1, id: 'org', name: 'Org', status: 'example', author: 'Org', attribution: 'Original test artwork',
   usage: { terms: 'Test only', portable: 'not-granted' },
   textures: [{ id: 'set', name: 'Set', template, panels: Object.fromEntries(Object.keys(panels).map(panel => [panel, `textures/${panel}.webp`])) }],
 }));
 async function collection(template, panels) {
-  const files = new Map([['collections/club/manifest.json', manifest(template, panels)]]);
-  for (const [panel, bytes] of Object.entries(panels)) files.set(`collections/club/textures/${panel}.webp`, await bytes);
+  const files = new Map([['collections/org/manifest.json', manifest(template, panels)]]);
+  for (const [panel, bytes] of Object.entries(panels)) files.set(`collections/org/textures/${panel}.webp`, await bytes);
   return files;
 }
 const check = files => checkImages([...files.keys()], file => files.get(file));
@@ -33,7 +32,7 @@ test('championship gates use their own proportions', async () => {
 
 test('texture folders must be flat', async () => {
   const files = await collection('hurdle-v1', { front: image(256, 128) });
-  files.set('collections/club/textures/old/front.webp', await image(256, 128));
+  files.set('collections/org/textures/old/front.webp', await image(256, 128));
   await assert.rejects(check(files), /texture folders must be flat/);
 });
 
@@ -72,40 +71,30 @@ test('transparency must match how the template renders', async () => {
 test('oversized files and missing panel files fail', async () => {
   const noisy = sharp(randomBytes(2048 * 1024 * 3), { raw: { width: 2048, height: 1024, channels: 3 } });
   const files = await collection('hurdle-v1', { front: noisy.webp({ lossless: true }).toBuffer() });
-  assert.ok(files.get('collections/club/textures/front.webp').length > limits.maxBytes);
+  assert.ok(files.get('collections/org/textures/front.webp').length > limits.maxBytes);
   await assert.rejects(check(files), /KiB exceeds 512 KiB/);
   const missing = await collection('gate-standard-v1', { left: image(200, 1000), right: image(200, 1000), top: image(1400, 200) });
-  missing.delete('collections/club/textures/top.webp');
+  missing.delete('collections/org/textures/top.webp');
   await assert.rejects(checkCollections([...missing.keys()], file => missing.get(file)), /missing panel file textures\/top\.webp/);
 });
 
-test('textures that drift from their editable source are reported', async () => {
-  const sheet = await readFile('templates/gate-standard-v1.svg');
-  const { panels } = await exportSheet(sheet.toString(), 'sheet');
+test('generated texture sets go through the same image and manifest checks', async () => {
+  const sheet = (await readFile('templates/corner-flag-v1.svg', 'utf8')).replace('data-template="corner-flag-v1"', 'data-template="corner-flag-v1" data-back-color="#000000"');
   const files = new Map([
-    ['collections/club/manifest.json', manifest('gate-standard-v1', panels)],
-    ['collections/club/source/set.svg', sheet],
-    ['collections/club/textures/left.webp', panels.left], ['collections/club/textures/right.webp', panels.right], ['collections/club/textures/top.webp', panels.top],
+    ['collections/org/manifest.json', Buffer.from(JSON.stringify({ schemaVersion: 1, id: 'org', name: 'Org', status: 'example', author: 'Org', attribution: 'Original', usage: { terms: 'Test', portable: 'not-granted' } }))],
+    ['collections/org/source/flag.svg', Buffer.from(sheet)],
   ]);
-  const read = file => files.get(file);
-  await assert.rejects(checkCollections([...files.keys()], read), /missing collections\/club\/textures\/set-left\.webp; run npm run textures:export/);
-  for (const panel of ['left', 'right', 'top']) files.set(`collections/club/textures/set-${panel}.webp`, panels[panel]);
-  assert.equal((await checkCollections([...files.keys()], read)).sources, 1);
-  files.set('collections/club/textures/set-top.webp', await image(2100, 300, { alpha: 1 }).then(bytes => sharp(bytes).tint('#ff0000').webp({ lossless: true }).toBuffer()));
-  await assert.rejects(checkCollections([...files.keys()], read), /set-top\.webp: out of date with collections\/club\/source\/set\.svg/);
-  files.set('collections/club/textures/set-top.webp', await sharp(panels.top).resize(1400, 200).webp({ lossless: true }).toBuffer());
-  await assert.rejects(checkCollections([...files.keys()], read), /set-top\.webp: is 1400x200 px but .* exports 2100x300 px/);
-  files.set('collections/club/textures/set-top.webp', panels.top);
-  // Original artwork without data-template is kept, not exported or compared.
-  files.set('collections/club/source/logo.svg', Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>'));
-  assert.equal((await checkCollections([...files.keys()], read)).sources, 1);
+  await assert.rejects(checkCollections([...files.keys()], file => files.get(file)), /backColor is not supported for corner-flag-v1/);
+  files.delete('collections/org/source/flag.svg');
+  await assert.rejects(checkCollections([...files.keys()], file => files.get(file)), /no texture sets; add a template sheet to source\//);
 });
 
 test('contact sheets render every texture set of a collection', async () => {
   const { collectionPreview } = await import('../scripts/preview.mjs');
   const { readFileSync } = await import('node:fs');
   for (const id of ['dds', 'multigp']) {
-    const sheet = await sharp(await collectionPreview(id, file => readFileSync(file))).metadata();
+    const { view } = await checkCollections(workingTreeFiles(), file => readFileSync(file));
+    const sheet = await sharp(await collectionPreview(id, view.read)).metadata();
     assert.equal(sheet.format, 'png');
     assert.equal(sheet.width, 1200);
     assert.ok(sheet.height > 500, id);

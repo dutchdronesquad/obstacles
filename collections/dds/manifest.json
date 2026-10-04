@@ -8,18 +8,5 @@
   "usage": {
     "terms": "Artwork and the DDS logo remain the property of Dutch Drone Squad. Provided to represent DDS obstacles in TrackDraw and compatible viewers; no other use or redistribution license is granted.",
     "portable": "not-granted"
-  },
-  "textures": [
-    {
-      "id": "standard-gate",
-      "name": "Standard gate",
-      "template": "gate-standard-v1",
-      "backColor": "#141c28",
-      "panels": {
-        "left": "textures/standard-gate-left.webp",
-        "right": "textures/standard-gate-right.webp",
-        "top": "textures/standard-gate-top.webp"
-      }
-    }
-  ]
+  }
 }

@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Klaas Schoute
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
-import { limits, templates, workingTreeFiles } from './collections.mjs';
+import { limits, templates } from './collections.mjs';
 
 // Editable sheet regions per template; sheet units are 1/100 ft for gates.
 export const templateSheets = {
@@ -28,7 +26,6 @@ export const templateSheets = {
 
 const hideGuides = '#guides{display:none !important}';
 const hideText = 'text{display:none !important}';
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 function fail(where, message) { throw new Error(`${where}: ${message}`); }
 function withStyle(svg, css) {
   return Buffer.from(svg.replace(/<svg\b[^>]*>/, tag => `${tag}<style>${css}</style>`));
@@ -43,11 +40,15 @@ export function readSheet(svg, where) {
   if (!/\sid="guides"/.test(svg)) fail(where, 'missing the layer with id="guides"; guides would be exported');
   if (/<(?:image|use|feImage)\b[^>]*\s(?:xlink:)?href\s*=\s*["'](?!#|data:)/.test(svg)) fail(where, 'linked files are not supported; embed images or use paths');
   if (/<flowRoot\b/.test(svg)) fail(where, 'flowed text is not supported; convert text to paths before exporting');
-  return { template, sheet };
+  const attribute = name => new RegExp(`<svg\\b[^>]*\\s${name}="([^"]*)"`).exec(svg.replace(/<!--[\s\S]*?-->/g, ''))?.[1];
+  const name = attribute('data-name'), backColor = attribute('data-back-color');
+  if (name !== undefined && !name.trim()) fail(where, 'data-name must not be empty');
+  const decode = value => value?.replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+  return { template, sheet, meta: { name: decode(name)?.trim(), backColor } };
 }
 
 export async function exportSheet(svg, where) {
-  const { template, sheet } = readSheet(svg, where);
+  const { template, sheet, meta } = readSheet(svg, where);
   const density = 72 * sheet.scale;
   const render = css => sharp(withStyle(svg, css), { density }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const [rendered, withoutText] = await Promise.all([render(hideGuides), render(hideGuides + hideText)]);
@@ -68,74 +69,49 @@ export async function exportSheet(svg, where) {
     if (bytes.length > limits.maxBytes) fail(where, `${panel} is ${Math.ceil(bytes.length / 1024)} KiB; simplify artwork to stay under ${limits.maxBytes / 1024} KiB`);
     panels[panel] = bytes;
   }
-  return { template, panels };
+  return { template, panels, meta };
 }
 
-const sheetSource = /^collections\/[a-z0-9-]+\/source\/[A-Za-z0-9][A-Za-z0-9._-]*\.svg$/;
+const sheetSource = /^collections\/[a-z0-9-]+\/source\/[^/]+\.svg$/;
+const textureId = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // Other SVGs in source/ (such as original logos) are kept as editable originals, not exported.
 export const isTemplateSheet = svg => /<svg\b[^>]*\sdata-template="/.test(svg.replace(/<!--[\s\S]*?-->/g, ''));
-export function textureFile(source, panel) {
-  return source.replace(/\/source\/([^/]+)\.svg$/, (_, name) => `/textures/${name}-${panel}.webp`);
-}
+const humanize = id => id.charAt(0).toUpperCase() + id.slice(1).replace(/-/g, ' ');
 
-// Fails when committed textures no longer match an export of their editable SVG source.
-export async function checkSources(files, read) {
+// Each template sheet in collections/<id>/source/ is one texture set: its panels are generated
+// (never committed) and its entry is appended to the collection manifest in the returned view.
+export async function withGeneratedTextures(files, read) {
   const available = new Set(files);
-  const sources = files.filter(file => sheetSource.test(file) && isTemplateSheet(read(file).toString()));
-  for (const source of sources) {
-    const { panels } = await exportSheet(read(source).toString(), source);
+  const generated = new Map(), manifests = new Map();
+  let sources = 0;
+  for (const source of files.filter(file => sheetSource.test(file)).sort()) {
+    const svg = read(source).toString();
+    if (!isTemplateSheet(svg)) continue;
+    const [, collection] = source.split('/');
+    const id = path.posix.basename(source, '.svg');
+    if (!textureId.test(id)) fail(source, 'file name must use lowercase letters, digits and hyphens; it becomes the texture id');
+    const { template, panels, meta } = await exportSheet(svg, source);
+    const entry = { id, name: meta.name ?? humanize(id), template, ...(meta.backColor !== undefined && { backColor: meta.backColor }), panels: {} };
     for (const [panel, bytes] of Object.entries(panels)) {
-      const texture = textureFile(source, panel);
-      if (!available.has(texture)) fail(source, `missing ${texture}; run npm run textures:export`);
-      const committed = await sharp(read(texture)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-      const exported = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-      if (committed.info.width !== exported.info.width || committed.info.height !== exported.info.height) {
-        fail(texture, `is ${committed.info.width}x${committed.info.height} px but ${source} exports ${exported.info.width}x${exported.info.height} px; run npm run textures:export`);
-      }
-      // Export is lossless with pinned renderers; allow only stray anti-aliasing pixels, not edited artwork.
-      let changed = 0;
-      for (let i = 0; i < committed.data.length; i += 4) {
-        if ([0, 1, 2, 3].some(c => Math.abs(committed.data[i + c] - exported.data[i + c]) > 16)) changed++;
-      }
-      if (changed > limits.sourceDriftPixels) fail(texture, `out of date with ${source} (${changed} pixels differ); run npm run textures:export`);
+      const texture = `collections/${collection}/textures/${id}-${panel}.webp`;
+      if (available.has(texture)) fail(texture, `is generated from ${source}; delete the committed file`);
+      generated.set(texture, bytes);
+      entry.panels[panel] = `textures/${id}-${panel}.webp`;
     }
-  }
-  return sources.length;
-}
-
-// Writes collections/<id>/textures/<source name>-<panel>.webp next to collections/<id>/source/.
-export async function exportFile(file) {
-  const absolute = path.resolve(process.env.INIT_CWD ?? '.', file);
-  if (!sheetSource.test(path.relative(root, absolute).split(path.sep).join('/'))) {
-    fail(file, 'file must be at collections/<id>/source/<name>.svg; copy the shared template there first');
-  }
-  file = absolute;
-  const { template, panels } = await exportSheet(readFileSync(file, 'utf8'), file);
-  const directory = path.join(path.dirname(file), '..', 'textures');
-  mkdirSync(directory, { recursive: true });
-  const written = Object.entries(panels).map(([panel, bytes]) => {
-    const output = path.join(directory, `${path.basename(file, '.svg')}-${panel}.webp`);
-    if (path.resolve(output) === file) fail(file, 'refusing to overwrite the source');
-    writeFileSync(output, bytes);
-    return output;
-  });
-  return { template, written };
-}
-
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  try {
-    let files = process.argv.slice(2);
-    // Without arguments, regenerate every editable source in every collection.
-    if (!files.length) {
-      files = workingTreeFiles(path.join(root, 'collections'))
-        .filter(file => sheetSource.test(path.relative(root, file).split(path.sep).join('/')) && isTemplateSheet(readFileSync(file, 'utf8')));
+    const file = `collections/${collection}/manifest.json`;
+    if (!available.has(file)) fail(`collections/${collection}`, 'missing manifest.json');
+    if (!manifests.has(file)) {
+      try { manifests.set(file, JSON.parse(read(file).toString())); }
+      catch (error) { fail(file, `invalid JSON: ${error.message}`); }
     }
-    for (const file of files) {
-      const { template, written } = await exportFile(file);
-      console.log(`${path.relative(root, path.resolve(process.env.INIT_CWD ?? '.', file))} (${template}):\n${written.map(output => `  ${path.relative(root, output)}`).join('\n')}`);
-    }
-  } catch (error) {
-    console.error(error.message);
-    process.exitCode = 1;
+    const manifest = manifests.get(file);
+    manifest.textures = [...(Array.isArray(manifest.textures) ? manifest.textures : []), entry];
+    sources++;
   }
+  const overrides = new Map([...manifests].map(([file, manifest]) => [file, Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`)]));
+  return {
+    files: [...files, ...generated.keys()],
+    read: file => generated.get(file) ?? overrides.get(file) ?? read(file),
+    sources,
+  };
 }
