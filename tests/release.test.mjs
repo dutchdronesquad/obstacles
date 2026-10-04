@@ -224,15 +224,15 @@ test('publishing from a build directory uploads only checked files in a safe ord
   const { builtFiles } = await import('../scripts/upload-assets.mjs');
   const directory = mkdtempSync(path.join(tmpdir(), 'obstacles-build-'));
   try {
-    mkdirSync(path.join(directory, 'club'));
+    mkdirSync(path.join(directory, 'org'));
     writeFileSync(path.join(directory, 'collections.json'), '{}');
-    writeFileSync(path.join(directory, 'club/manifest.json'), '{}');
-    writeFileSync(path.join(directory, 'club/gate-left.webp'), 'webp');
+    writeFileSync(path.join(directory, 'org/manifest.json'), '{}');
+    writeFileSync(path.join(directory, 'org/gate-left.webp'), 'webp');
     assert.deepEqual(builtFiles(directory).map(({ key, contentType }) => [key, contentType]), [
-      ['club/gate-left.webp', 'image/webp'], ['club/manifest.json', 'application/json'], ['collections.json', 'application/json'],
+      ['org/gate-left.webp', 'image/webp'], ['org/manifest.json', 'application/json'], ['collections.json', 'application/json'],
     ]);
-    writeFileSync(path.join(directory, 'club/run.sh'), 'echo');
-    assert.throws(() => builtFiles(directory), /club\/run\.sh: unexpected file/);
+    writeFileSync(path.join(directory, 'org/run.sh'), 'echo');
+    assert.throws(() => builtFiles(directory), /org\/run\.sh: unexpected file/);
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }

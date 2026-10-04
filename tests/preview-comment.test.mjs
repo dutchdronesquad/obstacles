@@ -31,10 +31,10 @@ test('only well-formed PNG previews from the untrusted artifact are accepted', a
 test('check output cannot break out of its code block', () => {
   const directory = mkdtempSync(path.join(tmpdir(), 'output-'));
   try {
-    writeFileSync(path.join(directory, 'check-output.txt'), '\x1b[31mcollections/club: bad\x1b[0m\n```\n@maintainer <img src=x>\x07');
+    writeFileSync(path.join(directory, 'check-output.txt'), '\x1b[31mcollections/org: bad\x1b[0m\n```\n@maintainer <img src=x>\x07');
     const output = checkOutput(directory);
     assert.ok(!output.includes('```') && !output.includes('\x1b') && !output.includes('\x07'));
-    assert.match(output, /collections\/club: bad/);
+    assert.match(output, /collections\/org: bad/);
     writeFileSync(path.join(directory, 'check-output.txt'), 'x'.repeat(10_000));
     assert.equal(checkOutput(directory).length, 4001);
   } finally {

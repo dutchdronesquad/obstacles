@@ -1,19 +1,19 @@
-name: Submit club artwork
+name: Submit obstacle artwork
 description: Send your finished template sheets; after review, a bot turns them into a pull request with previews.
-title: "collection: <club name>"
+title: "collection: <organization name>"
 labels: [submission]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for contributing artwork! Design each texture set on a copy of a [template sheet](https://github.com/dutchdronesquad/obstacles/blob/main/templates/README.md) (`gate-standard-v1.svg` for the standard 5x5 gate, `corner-flag-v1.svg` for the corner flag) and attach the saved `.svg` files below. No git or other tools are needed.
+        Thanks for contributing artwork! Any racing organization can submit: a club, chapter, league, team or brand. Design each texture set on a copy of a [template sheet](https://github.com/dutchdronesquad/obstacles/blob/main/templates/README.md) (`gate-standard-v1.svg` for the standard 5x5 gate, `corner-flag-v1.svg` for the corner flag) and attach the saved `.svg` files below. No git or other tools are needed.
 
         After a maintainer accepts the submission, a pull request with 3D previews is opened automatically and linked here.
   - type: input
     id: organization
     attributes:
-      label: Club or organization
-      description: The collection name shown in TrackDraw.
+      label: Organization
+      description: The name shown in TrackDraw, for example your club, chapter, league or brand.
     validations:
       required: true
   - type: input
@@ -27,26 +27,26 @@ body:
     id: website
     attributes:
       label: Website
-      description: Club website or social profile (optional).
+      description: Website or social profile (optional).
   - type: input
     id: author
     attributes:
       label: Artwork author
-      description: Who made the artwork, for example the club or a designer.
+      description: Who made the artwork, for example your organization or a designer.
     validations:
       required: true
   - type: input
     id: attribution
     attributes:
       label: Attribution
-      description: Credits and rights holder, for example "Club logo and artwork by Example Club".
+      description: Credits and rights holder, for example "Logo and artwork by Example Racing".
     validations:
       required: true
   - type: textarea
     id: terms
     attributes:
       label: Usage terms
-      description: How others may use this artwork. Example — "Artwork and logo remain the property of Example Club. Provided to represent Example Club obstacles in TrackDraw; no other use is granted."
+      description: How others may use this artwork. Example — "Artwork and logo remain the property of Example Racing. Provided to represent Example Racing obstacles in TrackDraw; no other use is granted."
     validations:
       required: true
   - type: dropdown

@@ -1,6 +1,6 @@
-# Contributing a club texture collection
+# Contributing a texture collection
 
-Clubs and brands can add artwork for obstacles TrackDraw already supports. You design from a template, the repository checks your files, a maintainer reviews the artwork, and it is then published to `https://obstacles.trackdraw.app`. New obstacle shapes are a TrackDraw feature and cannot be added here.
+Any racing organization (a club, chapter, league, team or brand) can add artwork for obstacles TrackDraw already supports. You design from a template, the repository checks your files, a maintainer reviews the artwork, and it is then published to `https://obstacles.trackdraw.app`. New obstacle shapes are a TrackDraw feature and cannot be added here.
 
 ## Before you start
 
@@ -14,7 +14,7 @@ No git, Node.js or command line needed.
 
 1. **Download a template.** [`gate-standard-v1.svg`](templates/gate-standard-v1.svg) for the standard 5x5 gate or [`corner-flag-v1.svg`](templates/corner-flag-v1.svg) for the corner flag.
 2. **Design.** Open it in [Inkscape](https://inkscape.org/) (free) and draw on the Artwork layer; the [template guide](templates/README.md) explains orientation, safe areas and what to avoid. Save one file per texture set.
-3. **Submit.** [Open a "Submit club artwork" issue](../../issues/new?template=submit-collection.yml), fill in your club details and usage terms, and drag your `.svg` files into the form.
+3. **Submit.** [Open a "Submit obstacle artwork" issue](../../issues/new?template=submit-collection.yml), fill in your organization details and usage terms, and drag your `.svg` files into the form.
 
 A maintainer checks the submission and adds the `accepted-submission` label. A bot then creates the collection, opens a pull request and links it in your issue; the pull request shows 3D renders of your artwork in TrackDraw's viewer. If something needs fixing, the bot explains it in the issue.
 
@@ -24,7 +24,7 @@ Prefer git? Contribute directly with these steps.
 
 1. **Create the collection.** Add `collections/<organization-slug>/` with:
    - `manifest.json`: only the collection details (`schemaVersion`, `id`, `name`, `status`, `author`, `attribution`, `usage`). Copy the [DDS manifest](collections/dds/manifest.json) and keep `"status": "example"`. Texture sets are added automatically from your sheets.
-   - `README.md`: who the club is, where the artwork comes from, and how it was made.
+   - `README.md`: who the organization is, where the artwork comes from, and how it was made.
 2. **Design.** Copy a template to `collections/<organization-slug>/source/<texture-id>.svg` and edit its Artwork layer; the [template guide](templates/README.md) explains orientation, safe areas, transparency, the optional `data-name` and `data-back-color`, and what is rejected. Each sheet becomes one texture set. Keep original logos or other editable artwork in `source/` too; SVGs without `data-template` are not used for panels.
 3. **Check.** Run:
 

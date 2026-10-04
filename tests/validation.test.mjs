@@ -12,13 +12,13 @@ import { checkImages, limits, workingTreeFiles } from '../scripts/collections.mj
 const image = (width, height, { alpha = 1, format = 'webp' } = {}) =>
   sharp({ create: { width, height, channels: 4, background: { r: 20, g: 28, b: 40, alpha } } })[format]({ lossless: true }).toBuffer();
 const manifest = (template, panels) => Buffer.from(JSON.stringify({
-  schemaVersion: 1, id: 'club', name: 'Club', status: 'example', author: 'Club', attribution: 'Original test artwork',
+  schemaVersion: 1, id: 'org', name: 'Org', status: 'example', author: 'Org', attribution: 'Original test artwork',
   usage: { terms: 'Test only', portable: 'not-granted' },
   textures: [{ id: 'set', name: 'Set', template, panels: Object.fromEntries(Object.keys(panels).map(panel => [panel, `textures/${panel}.webp`])) }],
 }));
 async function collection(template, panels) {
-  const files = new Map([['collections/club/manifest.json', manifest(template, panels)]]);
-  for (const [panel, bytes] of Object.entries(panels)) files.set(`collections/club/textures/${panel}.webp`, await bytes);
+  const files = new Map([['collections/org/manifest.json', manifest(template, panels)]]);
+  for (const [panel, bytes] of Object.entries(panels)) files.set(`collections/org/textures/${panel}.webp`, await bytes);
   return files;
 }
 const check = files => checkImages([...files.keys()], file => files.get(file));
@@ -32,7 +32,7 @@ test('championship gates use their own proportions', async () => {
 
 test('texture folders must be flat', async () => {
   const files = await collection('hurdle-v1', { front: image(256, 128) });
-  files.set('collections/club/textures/old/front.webp', await image(256, 128));
+  files.set('collections/org/textures/old/front.webp', await image(256, 128));
   await assert.rejects(check(files), /texture folders must be flat/);
 });
 
@@ -71,21 +71,21 @@ test('transparency must match how the template renders', async () => {
 test('oversized files and missing panel files fail', async () => {
   const noisy = sharp(randomBytes(2048 * 1024 * 3), { raw: { width: 2048, height: 1024, channels: 3 } });
   const files = await collection('hurdle-v1', { front: noisy.webp({ lossless: true }).toBuffer() });
-  assert.ok(files.get('collections/club/textures/front.webp').length > limits.maxBytes);
+  assert.ok(files.get('collections/org/textures/front.webp').length > limits.maxBytes);
   await assert.rejects(check(files), /KiB exceeds 512 KiB/);
   const missing = await collection('gate-standard-v1', { left: image(200, 1000), right: image(200, 1000), top: image(1400, 200) });
-  missing.delete('collections/club/textures/top.webp');
+  missing.delete('collections/org/textures/top.webp');
   await assert.rejects(checkCollections([...missing.keys()], file => missing.get(file)), /missing panel file textures\/top\.webp/);
 });
 
 test('generated texture sets go through the same image and manifest checks', async () => {
   const sheet = (await readFile('templates/corner-flag-v1.svg', 'utf8')).replace('data-template="corner-flag-v1"', 'data-template="corner-flag-v1" data-back-color="#000000"');
   const files = new Map([
-    ['collections/club/manifest.json', Buffer.from(JSON.stringify({ schemaVersion: 1, id: 'club', name: 'Club', status: 'example', author: 'Club', attribution: 'Original', usage: { terms: 'Test', portable: 'not-granted' } }))],
-    ['collections/club/source/flag.svg', Buffer.from(sheet)],
+    ['collections/org/manifest.json', Buffer.from(JSON.stringify({ schemaVersion: 1, id: 'org', name: 'Org', status: 'example', author: 'Org', attribution: 'Original', usage: { terms: 'Test', portable: 'not-granted' } }))],
+    ['collections/org/source/flag.svg', Buffer.from(sheet)],
   ]);
   await assert.rejects(checkCollections([...files.keys()], file => files.get(file)), /backColor is not supported for corner-flag-v1/);
-  files.delete('collections/club/source/flag.svg');
+  files.delete('collections/org/source/flag.svg');
   await assert.rejects(checkCollections([...files.keys()], file => files.get(file)), /no texture sets; add a template sheet to source\//);
 });
 

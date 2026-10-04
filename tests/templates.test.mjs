@@ -75,26 +75,26 @@ test('guides stay hidden when an editor marks the layer visible inline', async (
 
 test('each template sheet becomes a generated texture set in the manifest view', async () => {
   const sheet = (await readFile('templates/gate-standard-v1.svg', 'utf8'))
-    .replace('data-template="gate-standard-v1"', 'data-template="gate-standard-v1" data-name="Club &amp; friends gate" data-back-color="#112233"');
-  const manifest = { schemaVersion: 1, id: 'club', name: 'Club', status: 'example', author: 'Club', attribution: 'Original', usage: { terms: 'Test', portable: 'not-granted' } };
+    .replace('data-template="gate-standard-v1"', 'data-template="gate-standard-v1" data-name="Racing &amp; friends gate" data-back-color="#112233"');
+  const manifest = { schemaVersion: 1, id: 'org', name: 'Org', status: 'example', author: 'Org', attribution: 'Original', usage: { terms: 'Test', portable: 'not-granted' } };
   const files = new Map([
-    ['collections/club/manifest.json', Buffer.from(JSON.stringify(manifest))],
-    ['collections/club/source/main-gate.svg', Buffer.from(sheet)],
-    ['collections/club/source/logo.svg', Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>')],
+    ['collections/org/manifest.json', Buffer.from(JSON.stringify(manifest))],
+    ['collections/org/source/main-gate.svg', Buffer.from(sheet)],
+    ['collections/org/source/logo.svg', Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>')],
   ]);
   const view = await withGeneratedTextures([...files.keys()], file => files.get(file));
   assert.equal(view.sources, 1, 'SVGs without data-template are kept as originals');
-  const [entry] = JSON.parse(view.read('collections/club/manifest.json')).textures;
+  const [entry] = JSON.parse(view.read('collections/org/manifest.json')).textures;
   assert.deepEqual(entry, {
-    id: 'main-gate', name: 'Club & friends gate', template: 'gate-standard-v1', backColor: '#112233',
+    id: 'main-gate', name: 'Racing & friends gate', template: 'gate-standard-v1', backColor: '#112233',
     panels: { left: 'textures/main-gate-left.webp', right: 'textures/main-gate-right.webp', top: 'textures/main-gate-top.webp' },
   });
-  assert.deepEqual(view.files.filter(file => file.includes('/textures/')).sort(), Object.values(entry.panels).map(file => `collections/club/${file}`).sort());
-  assert.equal((await sharp(view.read('collections/club/textures/main-gate-top.webp')).metadata()).width, 2100);
+  assert.deepEqual(view.files.filter(file => file.includes('/textures/')).sort(), Object.values(entry.panels).map(file => `collections/org/${file}`).sort());
+  assert.equal((await sharp(view.read('collections/org/textures/main-gate-top.webp')).metadata()).width, 2100);
 
-  files.set('collections/club/textures/main-gate-top.webp', Buffer.from('stale'));
-  await assert.rejects(withGeneratedTextures([...files.keys()], file => files.get(file)), /is generated from collections\/club\/source\/main-gate\.svg; delete the committed file/);
-  files.delete('collections/club/textures/main-gate-top.webp');
-  files.set('collections/club/source/Main Gate.svg', Buffer.from(sheet));
+  files.set('collections/org/textures/main-gate-top.webp', Buffer.from('stale'));
+  await assert.rejects(withGeneratedTextures([...files.keys()], file => files.get(file)), /is generated from collections\/org\/source\/main-gate\.svg; delete the committed file/);
+  files.delete('collections/org/textures/main-gate-top.webp');
+  files.set('collections/org/source/Main Gate.svg', Buffer.from(sheet));
   await assert.rejects(withGeneratedTextures([...files.keys()], file => files.get(file)), /file name must use lowercase letters, digits and hyphens/);
 });

@@ -1,5 +1,5 @@
 name: Submission
-# A maintainer adds the accepted-submission label to a "Submit club artwork" issue.
+# A maintainer adds the accepted-submission label to a "Submit obstacle artwork" issue.
 on:
   issues:
     types: [labeled]

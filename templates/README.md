@@ -1,6 +1,6 @@
 # Texture templates
 
-Editable SVG sheets for designing club artwork on obstacles TrackDraw already renders. You draw on a sheet, export it, and get the runtime WebP panels a [collection](../docs/collection-contract.md) references. No Blender, 3D model or renderer change is needed.
+Editable SVG sheets for designing your organization's artwork on obstacles TrackDraw already renders. You draw on a sheet; the panels a [collection](../docs/collection-contract.md) needs are generated from it. No Blender, 3D model or renderer change is needed.
 
 These are rendering templates: they match the surfaces TrackDraw draws, not a certified manufacturing pattern. Physical banners, seams, eyelets and print bleed may differ; check with your printer before ordering real panels.
 
@@ -40,7 +40,7 @@ The sheet holds two flag sides next to each other. Each side is drawn as a viewe
 
 The DDS standard gate in [`collections/dds`](../collections/dds/README.md) was made this way.
 
-1. **Copy the template.** Copy for example `templates/gate-standard-v1.svg` to `collections/<organization-slug>/source/<texture-id>.svg`. The file name is the texture ID, so use lowercase letters, digits and hyphens (`standard-gate.svg`). Never edit the shared template for one club.
+1. **Copy the template.** Copy for example `templates/gate-standard-v1.svg` to `collections/<organization-slug>/source/<texture-id>.svg`. The file name is the texture ID, so use lowercase letters, digits and hyphens (`standard-gate.svg`). Never edit the shared template for one organization.
 2. **Edit the artwork.** Use [Inkscape](https://inkscape.org/) (free) or another SVG editor that keeps the `artwork` and `guides` group IDs and the page size. Draw only on the Artwork layer.
    - Convert text to paths (Inkscape: *Path → Object to Path*). Live text is rejected because fonts differ between computers.
    - Embed images instead of linking them (Inkscape: *File → Import → Embed*). Prefer vector logos for sharp edges.
@@ -51,8 +51,8 @@ That is all: the panels are generated from the sheet. `npm run assets:check` and
 
 In a pull request, CI comments with 3D renders and the contact sheet. To look at the result locally, run `npm run textures:preview -- <organization-slug>` for the contact sheet (add `--3d` for the renders after `npx playwright install chromium`), or `npm run textures:build -- --examples` to write the exact files that would be published to `build/` (useful as a local asset folder for TrackDraw).
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for submitting the result; without git, attach your sheets to a ["Submit club artwork" issue](https://github.com/dutchdronesquad/obstacles/issues/new?template=submit-collection.yml).
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for submitting the result; without git, attach your sheets to a ["Submit obstacle artwork" issue](https://github.com/dutchdronesquad/obstacles/issues/new?template=submit-collection.yml).
 
 ## Rights
 
-Only use artwork you own or have permission to use, and record the author, attribution and usage terms in the manifest. Do not copy MultiGP or other third-party branding into a club collection. A template is a layout, not a license for any artwork drawn on it.
+Only use artwork you own or have permission to use, and record the author, attribution and usage terms in the manifest. Do not copy MultiGP or other third-party branding into your collection. A template is a layout, not a license for any artwork drawn on it.

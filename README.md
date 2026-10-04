@@ -4,7 +4,7 @@ Source models, artwork and browser-ready textures for drone racing obstacles, to
 
 Available collections: [MultiGP](collections/multigp/README.md).
 
-Want to add your club's artwork? See [CONTRIBUTING.md](CONTRIBUTING.md) and the [texture templates](templates/README.md).
+Want to add your organization's obstacle artwork? See [CONTRIBUTING.md](CONTRIBUTING.md) and the [texture templates](templates/README.md).
 
 ## License and attribution
 

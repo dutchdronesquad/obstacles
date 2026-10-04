@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Klaas Schoute
 
-// Turns an accepted "Submit club artwork" issue into collection files (prepare, unprivileged)
+// Turns an accepted "Submit obstacle artwork" issue into collection files (prepare, unprivileged)
 // and a pull request (open, privileged; never renders or executes submitted content).
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -9,7 +9,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 export const fields = {
-  organization: 'Club or organization', slug: 'Collection slug', website: 'Website', author: 'Artwork author',
+  organization: 'Organization', slug: 'Collection slug', website: 'Website', author: 'Artwork author',
   attribution: 'Attribution', terms: 'Usage terms', portable: 'Offline exports', artwork: 'Template sheets', notes: 'Notes',
 };
 export const limits = { sheets: 10, bytes: 5 * 1024 * 1024, text: 2000 };
@@ -49,9 +49,9 @@ const singleLine = (value, label) => {
 // Pure: validated form values and downloaded sheets in, repository files out.
 export function buildSubmission({ values, sheets, issue, existing = [] }) {
   const slug = values.slug.trim().replace(/^`|`$/g, '').toLowerCase();
-  if (!slugPattern.test(slug)) fail('The collection slug must use lowercase letters, digits and hyphens, for example `my-club`.');
+  if (!slugPattern.test(slug)) fail('The collection slug must use lowercase letters, digits and hyphens, for example `my-racing`.');
   if (existing.includes(slug)) fail(`A collection named \`${slug}\` already exists. Ask a maintainer to update it, or pick another slug.`);
-  const name = singleLine(values.organization, 'Club or organization');
+  const name = singleLine(values.organization, 'Organization');
   const author = singleLine(values.author, 'Artwork author');
   const attribution = singleLine(values.attribution, 'Attribution');
   const terms = singleLine(values.terms, 'Usage terms');

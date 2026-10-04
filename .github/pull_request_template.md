@@ -1,6 +1,6 @@
 ## Summary
 
-<!-- What does this change? For a collection: club, texture sets and templates. -->
+<!-- What does this change? For a collection: organization, texture sets and templates. -->
 
 ## Collection checklist
 
