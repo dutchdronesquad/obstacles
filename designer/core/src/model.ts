@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Klaas Schoute
 
+import { DesignError, fail } from './errors.ts';
+import { validateLogo } from './logo.ts';
+
+export { DesignError };
+
 export type PanelEdge = [[number, number], [number, number]];
 
 export interface SafeArea { top: number; right: number; bottom: number; left: number }
@@ -62,11 +67,11 @@ export interface Design {
   panels: Record<string, PanelPlacement>;
 }
 
-export const designLimits = { minScale: 0.1, maxScale: 1, logoBytes: 5 * 1024 * 1024, nameLength: 80 };
+export const designLimits = { minScale: 0.1, maxScale: 1, nameLength: 80 };
 const hex = /^#[0-9a-f]{6}$/;
-
-export class DesignError extends Error {}
-function fail(message: string): never { throw new DesignError(message); }
+// Characters XML cannot hold, plus line breaks that attribute normalization would turn into spaces.
+const unsafeText = /[\u0000-\u001f\u007f\ufffe\uffff]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/;
+const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
 
 export function editableTemplate(definitions: TemplateDefinitions, template: string): TemplateDefinition {
   const definition = definitions[template];
@@ -98,10 +103,14 @@ export function createDesign(definitions: TemplateDefinitions, template: string)
 
 /** Same rules the repository checks enforce, reported before a sheet is downloaded. */
 export function validateDesign(definitions: TemplateDefinitions, design: Design): void {
-  if (design.version !== 1) fail('Unsupported design version.');
+  // Designs also arrive from reopened sheets, so check the shape before reading it.
+  if (!isObject(design) || design.version !== 1) fail('Unsupported design version.');
+  if (typeof design.template !== 'string') fail('The design has no template.');
   const definition = editableTemplate(definitions, design.template);
-  if (design.name !== undefined && (!design.name.trim() || design.name.length > designLimits.nameLength)) {
-    fail(`The name must be 1 to ${designLimits.nameLength} characters.`);
+  if (!isObject(design.colors) || !isObject(design.panels)) fail('The design is incomplete.');
+  if (design.name !== undefined) {
+    if (typeof design.name !== 'string' || !design.name.trim() || design.name.length > designLimits.nameLength) fail(`The name must be 1 to ${designLimits.nameLength} characters.`);
+    if (unsafeText.test(design.name)) fail('The name contains characters that cannot be saved; use letters, digits and punctuation.');
   }
   for (const [key, value] of Object.entries(design.colors)) {
     if (value !== undefined && !hex.test(value)) fail(`The ${key} colour must be a #rrggbb colour.`);
@@ -111,15 +120,12 @@ export function validateDesign(definitions: TemplateDefinitions, design: Design)
   const expected = Object.keys(definition.panels).sort().join();
   if (Object.keys(design.panels).sort().join() !== expected) fail(`Panels must be exactly ${expected}.`);
   for (const [panel, placement] of Object.entries(design.panels)) {
+    if (!isObject(placement) || typeof placement.visible !== 'boolean') fail(`The ${panel} placement is incomplete.`);
     if (!(placement.scale >= designLimits.minScale && placement.scale <= designLimits.maxScale)) fail(`The ${panel} scale must be between 0.1 and 1.`);
     if (!Number.isFinite(placement.offsetX) || !Number.isFinite(placement.offsetY)) fail(`The ${panel} offset must be a number.`);
   }
-  if (design.logo) validateLogo(design.logo);
-}
-
-export function validateLogo(logo: Logo): void {
-  if (!['svg', 'png', 'jpeg'].includes(logo.kind)) fail('Logos must be SVG, PNG or JPEG.');
-  if (!(logo.width > 0 && logo.height > 0)) fail('The logo has no size.');
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(logo.data)) fail('The logo data is not valid base64.');
-  if (logo.data.length * 0.75 > designLimits.logoBytes) fail('The logo is larger than 5 MB.');
+  if (design.logo !== undefined) {
+    if (!isObject(design.logo)) fail('The logo is incomplete.');
+    validateLogo(design.logo);
+  }
 }

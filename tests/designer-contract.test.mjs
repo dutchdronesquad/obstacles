@@ -20,12 +20,21 @@ async function samples(template) {
   const svgLogo = (await prepareLogo({ type: 'image/svg+xml', bytes: new TextEncoder().encode(red) })).logo;
   const pngBytes = await sharp({ create: { width: 400, height: 200, channels: 4, background: { r: 0, g: 0, b: 255, alpha: 0.6 } } }).png().toBuffer();
   const pngLogo = (await prepareLogo({ type: 'image/png', bytes: new Uint8Array(pngBytes) })).logo;
+  // Live text goes through the same rasterizer route the app uses, here with sharp instead of a canvas.
+  const textSvg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><rect width="200" height="100" fill="#00aa00"/><text x="10" y="70" font-size="60">DDS</text></svg>';
+  const rasterizeSvg = async (svg, size) => {
+    const bytes = await sharp(Buffer.from(svg)).resize(size.width, size.height).png().toBuffer();
+    return { bytes: new Uint8Array(bytes), ...size };
+  };
+  const textLogo = await prepareLogo({ type: 'image/svg+xml', bytes: new TextEncoder().encode(textSvg) }, { rasterizeSvg });
+  assert.equal(textLogo.rasterized, true);
   const panels = (placement) => Object.fromEntries(Object.keys(base.panels).map(panel => [panel, { ...base.panels[panel], ...placement }]));
   return {
     blank: base,
     'svg-logo': { ...base, name: 'Club "main" & co', logo: svgLogo, colors: { ...base.colors, background: '#141c28', accent: '#f39200' } },
     'png-logo-at-edge': { ...base, logo: pngLogo, panels: panels({ scale: 1, offsetX: 40, offsetY: -40 }) },
     'no-accent-hidden': { ...base, accent: 'none', logo: svgLogo, panels: panels({ visible: false }) },
+    'rasterized-text-logo': { ...base, logo: textLogo.logo },
   };
 }
 
@@ -67,4 +76,12 @@ test('logos and accents land where the template says', async () => {
   assert.deepEqual(await pixel(flagPanels.front, 50 * flagScale, 492 * flagScale), [243, 146, 0, 255]);
   assert.deepEqual(await pixel(flagPanels.front, 50 * flagScale, 315 * flagScale), [255, 0, 0, 255]);
   assert.equal((await pixel(flagPanels.front, 20 * flagScale, 40 * flagScale))[3], 0);
+});
+
+test('a logo hiding live text never becomes a sheet, however the design arrives', async () => {
+  const inner = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text>A</text></svg>';
+  const outer = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><image width="200" height="100" href="data:image/svg+xml;base64,${Buffer.from(inner).toString('base64')}"/></svg>`;
+  const design = { ...createDesign(templateDefinitions, 'gate-standard-v1'), logo: { kind: 'svg', data: Buffer.from(outer).toString('base64'), width: 200, height: 100 } };
+  const templateSvg = await readFile('templates/gate-standard-v1.svg', 'utf8');
+  assert.throws(() => renderSheet(templateDefinitions, templateSvg, design), /embeds another SVG/);
 });

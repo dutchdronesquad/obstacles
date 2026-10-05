@@ -20,7 +20,10 @@ export function safeRect(panel: PanelDefinition): Rect {
   };
 }
 
-/** Fits the logo, turned to the panel's reading direction, inside the safe area; scale 1 touches its edges. */
+/**
+ * Fits the logo, turned to the panel's reading direction, inside the safe area; scale 1 touches its edges.
+ * Offsets are clamped so the logo never leaves the safe area.
+ */
 export function placeLogo(panel: PanelDefinition, logo: { width: number; height: number }, placement: PanelPlacement): LogoPlacement | undefined {
   if (!placement.visible) return undefined;
   const rotation = panel.readingRotation ?? 0;
@@ -28,9 +31,11 @@ export function placeLogo(panel: PanelDefinition, logo: { width: number; height:
   const box = sideways ? { width: logo.height, height: logo.width } : logo;
   const safe = safeRect(panel);
   const factor = Math.min(safe.width / box.width, safe.height / box.height) * placement.scale;
+  const room = { x: (safe.width - box.width * factor) / 2, y: (safe.height - box.height * factor) / 2 };
+  const clamp = (value: number, limit: number) => Math.min(limit, Math.max(-limit, value));
   return {
-    cx: safe.x + safe.width / 2 + placement.offsetX,
-    cy: safe.y + safe.height / 2 + placement.offsetY,
+    cx: safe.x + safe.width / 2 + clamp(placement.offsetX, room.x),
+    cy: safe.y + safe.height / 2 + clamp(placement.offsetY, room.y),
     width: logo.width * factor,
     height: logo.height * factor,
     rotation,

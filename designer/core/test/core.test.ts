@@ -75,7 +75,14 @@ test('logo files are read without a DOM, and live text is rasterized or refused'
   await assert.rejects(prepareLogo({ type: 'image/svg+xml', bytes: encode(text) }), /live text/);
   let requested: { width: number; height: number } | undefined;
   const rasterized = await prepareLogo({ type: 'image/svg+xml', bytes: encode(text) }, {
-    rasterizeSvg: async (_svg, size) => { requested = size; return { bytes: new Uint8Array([1, 2, 3]), width: size.width, height: size.height }; },
+    rasterizeSvg: async (_svg, size) => {
+      requested = size;
+      const png = new Uint8Array(24);
+      png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      new DataView(png.buffer).setUint32(16, size.width);
+      new DataView(png.buffer).setUint32(20, size.height);
+      return { bytes: png, width: size.width, height: size.height };
+    },
   });
   assert.deepEqual([rasterized.logo.kind, rasterized.rasterized, requested], ['png', true, { width: 2048, height: 1024 }]);
 
@@ -102,9 +109,84 @@ test('sheets are deterministic, carry the checked attributes and open again', as
   const artwork = /<g id="artwork"[\s\S]*?\n {2}<\/g>/.exec(sheet)![0];
   assert.doesNotMatch(artwork, /<text\b/);
   assert.equal(artwork.match(/<use href="#designer-logo"/g)?.length, 3);
-  assert.deepEqual(parseSheet(sheet), design);
+  assert.deepEqual(parseSheet(definitions, sheet), design);
   const flag = renderSheet(definitions, template('corner-flag-v1'), createDesign(definitions, 'corner-flag-v1'));
   assert.match(flag, /clip-path="url\(#front-shape\)"/);
   assert.doesNotMatch(flag, /data-back-color/);
-  assert.throws(() => parseSheet(template('gate-standard-v1')), /not made with the designer/);
+  assert.throws(() => parseSheet(definitions, template('gate-standard-v1')), /not made with the designer/);
+});
+
+test('logos cannot hide live text or links from the checks', async () => {
+  const b64 = (text: string) => btoa(text);
+  const inner = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><text>A</text></svg>';
+  const hidden = [
+    // A nested SVG image: the checks cannot look inside it.
+    [`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><image width="10" height="10" href="data:image/svg+xml;base64,${b64(inner)}"/></svg>`, /embeds another SVG/],
+    // Entities can spell out elements the patterns would miss.
+    ['<!DOCTYPE svg [<!ENTITY t "&#60;text&#62;A&#60;/text&#62;">]><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">&t;</svg>', /DOCTYPE or entities/],
+    ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><style>@import "fonts.css";</style></svg>', /links to other files/],
+    ['<svg xmlns="http://www.w3.org/2000/svg" xmlns:xl="http://www.w3.org/1999/xlink" viewBox="0 0 10 10"><image xl:href="https://x/y.png"/></svg>', /links to other files/],
+    ['<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><foreignObject/></svg>', /embedded HTML/],
+  ] as const;
+  for (const [svg, message] of hidden) await assert.rejects(prepareLogo({ type: 'image/svg+xml', bytes: encode(svg) }), message);
+  // Namespaced text is still text.
+  const prefixed = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:s="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><s:text>A</s:text></svg>';
+  await assert.rejects(prepareLogo({ type: 'image/svg+xml', bytes: encode(prefixed) }), /live text/);
+  // Text in a comment is not live text.
+  const commented = await prepareLogo({ type: 'image/svg+xml', bytes: encode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><!-- <text>old</text> --><rect width="10" height="10"/></svg>') });
+  assert.equal(commented.logo.kind, 'svg');
+});
+
+test('designs from reopened sheets get the same checks as uploads', async () => {
+  const design = await withLogo(createDesign(definitions, 'gate-standard-v1'));
+  const sheet = renderSheet(definitions, template('gate-standard-v1'), design);
+  const swapLogo = (svg: string) => sheet.replace(/base64,[A-Za-z0-9+/=]+"/, `base64,${btoa(svg)}"`);
+  assert.throws(() => parseSheet(definitions, swapLogo('<svg viewBox="0 0 1 1"><script>x()</script></svg>')), /scripts/);
+  assert.throws(() => parseSheet(definitions, swapLogo('<svg viewBox="0 0 1 1"><text>A</text></svg>')), /live text/);
+  assert.throws(() => parseSheet(definitions, sheet.replace('&quot;background&quot;:&quot;#1e293b&quot;', '&quot;background&quot;:&quot;red&quot;')), /background colour/);
+  assert.throws(() => parseSheet(definitions, sheet.replace(/(<metadata id="designer-design">)[^<]*/, '$1{broken')), /damaged/);
+  // A PNG kind with SVG bytes is caught by its header.
+  assert.throws(() => validateDesign(definitions, { ...design, logo: { ...design.logo!, kind: 'png' } }), /not a PNG/);
+  // Re-saved sheets may use xlink:href, other attribute orders and wrapped base64.
+  const resaved = sheet.replace(/<image id="designer-logo" ([^>]*) href="data:image\/svg\+xml;base64,([A-Za-z0-9+/=]+)"/, (_, attrs, data) => `<image ${attrs} xlink:href="data:image/svg+xml;base64,${data.slice(0, 20)}\n${data.slice(20)}" id="designer-logo"`);
+  assert.deepEqual(parseSheet(definitions, resaved), design);
+  const noLogo = createDesign(definitions, 'corner-flag-v1');
+  assert.deepEqual(parseSheet(definitions, renderSheet(definitions, template('corner-flag-v1'), noLogo)), noLogo);
+});
+
+test('names that XML cannot hold are refused, other characters round trip', () => {
+  const gate = createDesign(definitions, 'gate-standard-v1');
+  for (const name of ['a\u0001b', 'line\nbreak', 'x\uffff', 'lone\ud800']) assert.throws(() => validateDesign(definitions, { ...gate, name }), /cannot be saved/);
+  const name = 'Zürich ]]> -- <!-- 😀 & "co"';
+  assert.equal(parseSheet(definitions, renderSheet(definitions, template('gate-standard-v1'), { ...gate, name })).name, name);
+});
+
+test('offsets keep the logo inside the safe area', () => {
+  const { left } = definitions['gate-standard-v1'].panels;
+  const safe = safeRect(left);
+  const far = placeLogo(left, { width: 200, height: 100 }, { visible: true, scale: 0.5, offsetX: 1000, offsetY: -1000 })!;
+  // Sideways, the logo's box is height x width; its edges touch the safe area exactly.
+  assert.equal(far.cx + far.height / 2, safe.x + safe.width);
+  assert.equal(far.cy - far.width / 2, safe.y);
+  const full = placeLogo(left, { width: 200, height: 100 }, { visible: true, scale: 1, offsetX: 50, offsetY: 0 })!;
+  assert.equal(full.cx, safe.x + safe.width / 2, 'no room to move at full scale');
+});
+
+test('rasterized and sniffed logos are checked by content', async () => {
+  const text = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10000 1"><text>A</text></svg>';
+  await assert.rejects(prepareLogo({ type: 'image/svg+xml', bytes: encode(text) }, { rasterizeSvg: async () => ({ bytes: new Uint8Array([1, 2, 3]), width: 1, height: 1 }) }), /not a PNG/);
+  let size: { width: number; height: number } | undefined;
+  const png = new Uint8Array(24);
+  png.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  new DataView(png.buffer).setUint32(16, 2048);
+  new DataView(png.buffer).setUint32(20, 1);
+  await prepareLogo({ type: 'image/svg+xml', bytes: encode(text) }, { rasterizeSvg: async (_svg, requested) => { size = requested; return { bytes: png, width: 0, height: 0 }; } });
+  assert.deepEqual(size, { width: 2048, height: 1 }, 'never a zero-sized rasterization');
+  // A PNG with an empty or generic type is recognised by its header.
+  assert.equal((await prepareLogo({ type: '', bytes: png })).logo.kind, 'png');
+  assert.equal((await prepareLogo({ type: 'application/octet-stream', bytes: png })).logo.kind, 'png');
+  // An SVG with a byte order mark and a leading comment is still an SVG.
+  assert.equal((await prepareLogo({ type: '', bytes: encode('\uFEFF<!-- logo --><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2 1"/>') })).logo.kind, 'svg');
+  // JPEG markers may be padded with 0xFF fill bytes.
+  assert.deepEqual(jpegSize(new Uint8Array([0xff, 0xd8, 0xff, 0xff, 0xc0, 0x00, 0x11, 0x08, 0x01, 0x40, 0x02, 0x80, 0x03, 0, 0, 0, 0, 0])), { width: 640, height: 320 });
 });
