@@ -18,7 +18,7 @@
     "textures:preview": "node scripts/preview.mjs"
   },
   "devDependencies": {
-    "@trackdraw/viewer": "1.0.0",
+    "@trackdraw/viewer": "1.0.1",
     "playwright": "1.63.0",
     "sharp": "0.35.5",
     "wrangler": "4.147.0"
