@@ -4,7 +4,7 @@ Collections live under `collections/<organization-slug>/`, each containing `mani
 
 ## Manifest schema
 
-The executable schema is `validateManifest` and the versioned template slot registry in `scripts/collections.mjs`. Both the MultiGP collection and the DDS pilot use it. Unknown fields, unsupported versions/templates, missing fields, duplicate texture IDs, invalid paths and missing panel files fail validation with the collection filename. IDs are lowercase alphanumeric segments separated by hyphens. Runtime files use case-sensitive ASCII basenames and `.webp` extensions; paths, URLs and symlinks cannot escape the collection.
+The executable schema is `validateManifest` in `scripts/collections.mjs`, with template slots, regions, colours and conventions defined once in [`templates/templates.json`](../templates/templates.json). Both the MultiGP collection and the DDS pilot use it. Unknown fields, unsupported versions/templates, missing fields, duplicate texture IDs, invalid paths and missing panel files fail validation with the collection filename. IDs are lowercase alphanumeric segments separated by hyphens. Runtime files use case-sensitive ASCII basenames and `.webp` extensions; paths, URLs and symlinks cannot escape the collection.
 
 Every manifest requires:
 
@@ -25,10 +25,10 @@ A texture identity is the pair `(collection id, texture id)`. Each panel maps to
 
 ## Panel images
 
-`npm run assets:check` (`scripts/check-collections.mjs`) decodes every runtime file and judges it by content, not extension. Rules per referenced panel, from `panelImages` and `limits` in `scripts/collections.mjs`:
+`npm run assets:check` (`scripts/check-collections.mjs`) decodes every runtime file and judges it by content, not extension. Rules per referenced panel, from `templates/templates.json` (proportions follow each panel's region) and `limits` in `scripts/collections.mjs`:
 
 - WebP content, 64–4096 px per edge, at most 512 KiB.
-- Width/height within 1% of the rendered surface: `gate-standard-v1` sides 1:5 and top 7:1, `gate-championship-v1` sides 1:4 and top 5:1, `corner-flag-v1` 0.18:0.92, `hurdle-v1` 2:1.
+- Width/height within 1% of the rendered surface: `gate-standard-v1` sides 1:5 and top 7:1, `gate-championship-v1` sides 1:4 and top 5:1, `corner-flag-v1` 100:511, `hurdle-v1` 2:1.
 - Gate and hurdle panels render without transparency, so every pixel needs alpha 192 or more (at most about 25% transparent). Corner flags need transparent pixels outside their outline.
 - Template sheets in `collections/<id>/source/` are rendered and their generated panels are checked like committed ones. Other SVGs there, such as original logos, are kept as editable originals and not used.
 

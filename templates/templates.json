@@ -1,0 +1,68 @@
+{
+  "gate-standard-v1": {
+    "name": "Standard gate",
+    "defaultTextureId": "standard-gate",
+    "transparency": "opaque",
+    "unprintedBack": true,
+    "views": ["Front view"],
+    "layout": { "width": 700, "height": 600 },
+    "sheet": { "scale": 3 },
+    "panels": {
+      "left": {
+        "x": 0, "y": 100, "width": 100, "height": 500, "color": "#f8fafc", "readingRotation": -90,
+        "safeArea": { "top": 8, "right": 8, "bottom": 8, "left": 12 }
+      },
+      "right": {
+        "x": 600, "y": 100, "width": 100, "height": 500, "color": "#f8fafc", "readingRotation": 90,
+        "safeArea": { "top": 8, "right": 12, "bottom": 8, "left": 8 }
+      },
+      "top": {
+        "x": 0, "y": 0, "width": 700, "height": 100, "color": "#202e5d", "readingRotation": 0,
+        "safeArea": { "top": 12, "right": 12, "bottom": 8, "left": 12 }
+      }
+    }
+  },
+  "gate-championship-v1": {
+    "name": "Championship gate",
+    "defaultTextureId": "championship-gate",
+    "transparency": "opaque",
+    "unprintedBack": true,
+    "views": ["Front view"],
+    "layout": { "width": 1000, "height": 800 },
+    "panels": {
+      "left": { "x": 0, "y": 200, "width": 150, "height": 600, "color": "#f8fafc" },
+      "right": { "x": 850, "y": 200, "width": 150, "height": 600, "color": "#f8fafc", "turn": 180 },
+      "top": { "x": 0, "y": 0, "width": 1000, "height": 200, "color": "#202e5d" }
+    }
+  },
+  "corner-flag-v1": {
+    "name": "Corner flag",
+    "defaultTextureId": "corner-flag",
+    "transparency": "cut-out",
+    "unprintedBack": false,
+    "views": ["Front, seen from the front", "Back, seen from behind"],
+    "layout": { "width": 260, "height": 511, "poles": [[0, 511, 0, 0], [260, 511, 260, 0]] },
+    "sheet": { "scale": 4 },
+    "panels": {
+      "front": {
+        "x": 0, "y": 0, "width": 100, "height": 511, "readingRotation": -90,
+        "safeArea": { "top": 140, "right": 10, "bottom": 50, "left": 10 }
+      },
+      "back": {
+        "x": 160, "y": 0, "width": 100, "height": 511, "readingRotation": 90,
+        "safeArea": { "top": 140, "right": 10, "bottom": 50, "left": 10 }
+      }
+    }
+  },
+  "hurdle-v1": {
+    "name": "Hurdle",
+    "defaultTextureId": "hurdle",
+    "transparency": "opaque",
+    "unprintedBack": false,
+    "views": ["Front view"],
+    "layout": { "width": 200, "height": 100 },
+    "panels": {
+      "front": { "x": 0, "y": 0, "width": 200, "height": 100 }
+    }
+  }
+}

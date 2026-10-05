@@ -9,7 +9,7 @@ These are rendering templates: they match the surfaces TrackDraw draws, not a ce
 | `gate-standard-v1` | [gate-standard-v1.svg](gate-standard-v1.svg) | `left`, `right`, `top` | sides 300 × 1500 px (1 × 5 ft), top 2100 × 300 px (7 × 1 ft) | none; transparent areas become the default white sides and navy top | [image](reference/gate-standard-v1.webp) |
 | `corner-flag-v1` | [corner-flag-v1.svg](corner-flag-v1.svg) | `front`, `back` | 400 × 2044 px each | required outside the flag outline | [image](reference/corner-flag-v1.webp) |
 
-The template ID in each sheet's `data-template` attribute is the `template` value in the manifest. Other templates in the contract (`gate-championship-v1`, `hurdle-v1`) do not have an editable sheet yet.
+The template ID in each sheet's `data-template` attribute is the `template` value in the manifest. [`templates.json`](templates.json) defines every template once: its panels and their regions, default colours, transparency, safe areas and reading direction. The scripts and tests read it, so a template is changed in one place. Other templates in the contract (`gate-championship-v1`, `hurdle-v1`) do not have an editable sheet yet.
 
 ## Sheet layout
 

@@ -246,10 +246,10 @@ test('publishing from a build directory uploads only checked files in a safe ord
   }
 });
 
-test('upload and verify from a build directory load without image libraries', () => {
-  // The publish workflow's verify job runs without npm ci.
+test('scripts used by jobs without npm ci load without image libraries', () => {
+  // The publish verify job and the privileged submission and preview jobs run without npm ci.
   const hook = 'data:text/javascript,' + encodeURIComponent('import { registerHooks } from "node:module"; registerHooks({ resolve(specifier, context, next) { if (specifier === "sharp") throw new Error("sharp must not load"); return next(specifier, context); } });');
-  for (const script of ['upload-assets.mjs', 'verify-assets.mjs']) {
+  for (const script of ['upload-assets.mjs', 'verify-assets.mjs', 'submission.mjs', 'preview-comment.mjs']) {
     execFileSync(process.execPath, ['--import', hook, '--input-type=module', '-e', `await import(${JSON.stringify(new URL(`../scripts/${script}`, import.meta.url).href)})`]);
   }
 });
