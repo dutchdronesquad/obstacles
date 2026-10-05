@@ -1,0 +1,14 @@
+{
+  "name": "@track-assets/designer-core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Framework-free core of the obstacle artwork designer: design model, placement and template sheet rendering.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

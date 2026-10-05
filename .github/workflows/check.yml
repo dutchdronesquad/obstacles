@@ -27,6 +27,7 @@ jobs:
           set -o pipefail
           mkdir -p previews
           npm run -s assets:check 2>&1 | tee previews/check-output.txt
+          npm run typecheck
           npm test
       # Preview the collections this branch changes, also when checks fail.
       - name: Find changed collections
