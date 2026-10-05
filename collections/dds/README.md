@@ -10,6 +10,6 @@ Obstacle artwork of [Dutch Drone Squad](https://github.com/dutchdronesquad), mad
 The design is deliberately calm: dark navy, the DDS logo once per panel, and one orange accent, which frames the gate opening and runs along the flag's bottom edge.
 
 - **Gate:** the logo reads bottom → top on the left post and top → bottom on the right; `data-back-color` gives the unprinted back the same navy.
-- **Flag:** front and back carry the same artwork reading bottom → top; the back outline is mirrored so it follows the pole.
+- **Flag:** the logo reads bottom → top on the front and top → bottom on the back, like the two gate posts; the back outline is mirrored so it follows the pole.
 
 The DDS logo is embedded as vector paths. The logo and artwork belong to Dutch Drone Squad and may be used in TrackDraw and compatible viewers, including portable and offline track exports; see `manifest.json` for the exact terms and the [collection contract](../../docs/collection-contract.md) for orientation, rights and publication rules.

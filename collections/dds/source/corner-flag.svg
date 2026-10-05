@@ -28,7 +28,7 @@
     <g clip-path="url(#back-shape)">
       <rect x="160" y="0" width="100" height="511" fill="#141c28"/>
       <path d="M 260 491 L 160 468 V 488 L 260 511 Z" fill="#f39200"/>
-      <use href="#dds-logo" transform="translate(208 250) rotate(-90) scale(0.1810) translate(-444.145 -171.295)"/>
+      <use href="#dds-logo" transform="translate(208 250) rotate(90) scale(0.1810) translate(-444.145 -171.295)"/>
     </g>
   </g>
 
