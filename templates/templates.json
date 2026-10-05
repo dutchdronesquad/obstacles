@@ -46,11 +46,13 @@
     "panels": {
       "front": {
         "x": 0, "y": 0, "width": 100, "height": 511, "readingRotation": -90,
-        "safeArea": { "top": 140, "right": 10, "bottom": 50, "left": 10 }
+        "safeArea": { "top": 140, "right": 10, "bottom": 50, "left": 10 },
+        "clipPath": "front-shape", "bottomEdge": [[0, 511], [100, 488]]
       },
       "back": {
         "x": 160, "y": 0, "width": 100, "height": 511, "readingRotation": 90,
-        "safeArea": { "top": 140, "right": 10, "bottom": 50, "left": 10 }
+        "safeArea": { "top": 140, "right": 10, "bottom": 50, "left": 10 },
+        "clipPath": "back-shape", "bottomEdge": [[160, 488], [260, 511]]
       }
     }
   },

@@ -52,7 +52,7 @@
       <text x="350" y="228">Opening 5 × 5 ft · not exported</text>
       <text x="350" y="272">Drawn as seen when facing the printed side.</text>
       <text x="350" y="292">Slot "left" appears on your left, "right" on your right.</text>
-      <text x="350" y="336">Only the front is printed. Set backColor in the manifest</text>
+      <text x="350" y="336">Only the front is printed. Add data-back-color to the sheet</text>
       <text x="350" y="356">to give the back one solid colour (default white and navy).</text>
       <text x="350" y="400">Each exported panel is exactly its region on this sheet:</text>
       <text x="350" y="420">no extra rotation or mirroring is needed.</text>

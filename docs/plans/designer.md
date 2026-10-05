@@ -62,7 +62,7 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 
 ## Logos
 
-- **SVG:** sanitized before use (DOMPurify, SVG profile). Scripts, event handlers, external references and `<foreignObject>` are removed. A logo with live `<text>` is rasterized to an embedded PNG automatically, because CI rejects live text. The user is told that converting text to paths gives sharper edges.
+- **SVG:** embedded as an image (`<image href="data:image/svg+xml;base64,…">`), never inlined, so browsers render it in their restricted image mode: nothing in it runs, and it cannot load other files. librsvg renders it the same way in CI. Logos with scripts, event handlers or links to other files are refused with an explanation, so nothing silently disappears. A logo with live `<text>` is rasterized to an embedded PNG automatically, because CI rejects live text; the user is told that converting text to paths gives sharper edges.
 - **PNG/JPEG:** embedded as a data URI. The designer warns when the resolution is too low for the panel size, and when the estimated panel size gets close to 512 KiB.
 - Transparent logos are fine on gates: the panel background is part of the artwork, so nothing exports transparent there.
 
