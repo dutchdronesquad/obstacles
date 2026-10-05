@@ -99,8 +99,6 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 - **Subdomain:** `designer.trackdraw.app`.
 - **UI framework:** React.
 - **SVG logos with live text:** rasterized automatically, with a note that paths are sharper.
+- **Issue form upload field:** "Template sheets" becomes GitHub's dedicated `upload` field with `accept: ".svg"` and `required: true`, so the form itself refuses other files. The submission parser already accepts both `user-attachments/assets` and `user-attachments/files` links; the switch lands with milestone 5 and is confirmed with one real test submission.
+- **Repository layout:** npm workspaces at the root (`designer/core`, `designer/app`). The core is TypeScript limited to erasable syntax (`erasableSyntaxOnly`), so Node 24, already required by this repository, imports it directly: the contract test in `tests/` runs `renderSheet` against the existing scripts with `node --test`, with no build step. The app has its own Vite build and deploys separately.
 
-## Open questions
-
-1. **Issue form upload field:** switch "Template sheets" from a textarea to GitHub's dedicated `upload` field type. Check first which URLs it produces for the submission parser.
-2. **Repository layout:** `designer/` with its own `package.json`, or npm workspaces at the root?
