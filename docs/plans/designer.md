@@ -20,7 +20,7 @@ Let any racing organization design artwork for a supported obstacle in the brows
 ## Hosting
 
 - **Static site on GitHub Pages** from this repository, deployed by a workflow with `actions/deploy-pages` on pushes to `main` that touch the designer.
-- **Custom subdomain:** proposal `designer.trackdraw.app`. A CNAME to `dutchdronesquad.github.io` in Cloudflare, DNS only (not proxied), so GitHub can issue the TLS certificate. Verify the domain for the organization under GitHub's *Pages → Verified domains* to prevent takeover.
+- **Custom subdomain:** `designer.trackdraw.app`. A CNAME to `dutchdronesquad.github.io` in Cloudflare, DNS only (not proxied), so GitHub can issue the TLS certificate. Verify the domain for the organization under GitHub's *Pages → Verified domains* to prevent takeover.
 - Everything runs in the browser: no uploads, no backend, no tracking.
 
 ## Architecture
@@ -50,14 +50,14 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 
 ### App (`designer/app`)
 
-- **Vite + TypeScript.** For the UI, React matches TrackDraw and the viewer; the open question below covers this.
+- **Vite + TypeScript + React.** React matches TrackDraw and the viewer, which bundles React anyway.
 - **2D preview:** the rendered sheet with guides visible, plus a toggle to show only what will be exported.
 - **3D preview:** `@trackdraw/viewer` with an `assetResolver` that serves panels rasterized in the browser: the sheet is drawn to a canvas per region, just as `exportSheet` does. The render design is the same as `scripts/render3d.mjs` (three angles). Browser rasterization can differ slightly from librsvg in CI; CI's preview comment remains the source of truth.
 - **Submit:** opens `issues/new?template=submit-collection.yml&organization=…&slug=…&usage=…` (issue forms prefill fields by `id`).
 
 ## Logos
 
-- **SVG:** sanitized before use (DOMPurify, SVG profile). Scripts, event handlers, external references and `<foreignObject>` are removed. A logo with live `<text>` is refused with an explanation, or offered as a rasterized PNG as a fallback, because CI rejects live text.
+- **SVG:** sanitized before use (DOMPurify, SVG profile). Scripts, event handlers, external references and `<foreignObject>` are removed. A logo with live `<text>` is rasterized to an embedded PNG automatically, because CI rejects live text. The user is told that converting text to paths gives sharper edges.
 - **PNG/JPEG:** embedded as a data URI. The designer warns when the resolution is too low for the panel size, and when the estimated panel size gets close to 512 KiB.
 - Transparent logos are fine on gates: the panel background is part of the artwork, so nothing exports transparent there.
 
@@ -94,10 +94,13 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 4. 3D preview with the viewer and in-browser rasterization.
 5. Pages deployment, subdomain, submit link, docs (CONTRIBUTING and the template guide point to the designer).
 
+## Decisions
+
+- **Subdomain:** `designer.trackdraw.app`.
+- **UI framework:** React.
+- **SVG logos with live text:** rasterized automatically, with a note that paths are sharper.
+
 ## Open questions
 
-1. **Subdomain:** `designer.trackdraw.app`, or something without the product name, such as `design.dutchdronesquad…`?
-2. **UI framework:** React (consistent with TrackDraw and the viewer, which bundles React anyway) or something lighter, such as Preact or plain TypeScript?
-3. **SVG logos with text:** refuse them, or rasterize them automatically?
-4. **Issue form upload field:** switch "Template sheets" from a textarea to GitHub's dedicated `upload` field type. Check first which URLs it produces for the submission parser.
-5. **Repository layout:** `designer/` with its own `package.json`, or npm workspaces at the root?
+1. **Issue form upload field:** switch "Template sheets" from a textarea to GitHub's dedicated `upload` field type. Check first which URLs it produces for the submission parser.
+2. **Repository layout:** `designer/` with its own `package.json`, or npm workspaces at the root?
