@@ -15,6 +15,7 @@ concurrency:
 jobs:
   # Renders template sheets and checks everything without access to secrets.
   build:
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -28,9 +29,9 @@ jobs:
         with:
           node-version: 24.21.0
           cache: npm
-      - name: Install, test and build
+      - name: Validate collections and build public assets
         run: npm ci && npm run assets:check && npm test && npm run textures:build
-      - name: Upload build
+      - name: Upload checked assets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: public-assets
@@ -38,6 +39,7 @@ jobs:
           if-no-files-found: error
   # Only uploads the checked bytes; never renders submitted artwork while secrets are present.
   upload:
+    name: Publish
     needs: build
     runs-on: ubuntu-latest
     environment: production
@@ -55,17 +57,18 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Download build
+      - name: Download checked assets
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: public-assets
           path: public-assets
-      - name: Publish
+      - name: Upload assets to R2
         run: node scripts/upload-assets.mjs --from public-assets
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   verify:
+    name: Verify
     needs: upload
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -79,10 +82,10 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.21.0
-      - name: Download build
+      - name: Download checked assets
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: public-assets
           path: public-assets
-      - name: Verify
+      - name: Verify public bytes and headers
         run: node scripts/verify-assets.mjs --from public-assets

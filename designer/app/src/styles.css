@@ -330,6 +330,14 @@ p {
 .primary:hover:not(:disabled) {
   background: #087dbb;
 }
+.download {
+  height: 32px;
+  gap: 7px;
+  padding: 0 10px;
+  font-weight: 400;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .editor-body {
   display: flex;
   min-height: 0;
@@ -980,6 +988,25 @@ p {
   color: #647586;
   font-size: 11px;
 }
+.submission-dialog p {
+  line-height: 1.6;
+}
+.submission-dialog form {
+  display: grid;
+  gap: 14px;
+}
+.submission-dialog label {
+  display: grid;
+  gap: 6px;
+  font-weight: 500;
+}
+.submission-dialog form p {
+  margin: 0;
+  color: #647586;
+}
+.submission-dialog a {
+  color: var(--blue);
+}
 kbd {
   padding: 3px 7px;
   border: 1px solid #dce3e9;
@@ -1113,7 +1140,8 @@ kbd {
     display: none;
   }
   .download {
-    padding: 10px;
+    width: 32px;
+    padding: 0;
   }
   .download span {
     display: none;
@@ -1160,7 +1188,7 @@ kbd {
     height: 32px;
   }
   .download {
-    padding: 8px;
+    width: 27px;
   }
   .tool-rail {
     width: 58px;

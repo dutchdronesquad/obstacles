@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { checkCollections } from '../scripts/check-collections.mjs';
 import { attachmentUrls, buildSubmission, checkPrepared, fields, parseIssueForm, plain, usageChoices } from '../scripts/submission.mjs';
+import { submissionUrl, submissionUsage } from '../designer/app/src/submission.ts';
 
 const body = (overrides = {}) => {
   const values = {
@@ -24,8 +25,26 @@ test('the issue form matches the parser: same labels and usage choices', async (
   const form = await readFile('.github/ISSUE_TEMPLATE/submit-collection.yml', 'utf8');
   const labels = [...form.matchAll(/^ {6}label: (.+)$/gm)].map(match => match[1]);
   for (const label of Object.values(fields)) assert.ok(labels.includes(label), label);
-  const options = [...form.matchAll(/^ {8}- (In TrackDraw.*)$/gm)].map(match => match[1]);
-  assert.deepEqual(options, Object.keys(usageChoices));
+  for (const choice of Object.keys(usageChoices)) assert.ok(form.includes(`\`${choice}\``));
+  assert.deepEqual(submissionUsage, Object.keys(usageChoices));
+  assert.match(form, /type: upload\n    id: artwork[\s\S]*?validations:\n      required: true\n      accept: "\.svg"/);
+  assert.match(form, /type: input\n    id: usage/);
+});
+
+test('designer links safely prefill the form without confirming permission or attaching files', () => {
+  for (const usage of submissionUsage) {
+    const url = new URL(submissionUrl('  Racing & 東京 #1  ', '', usage));
+    assert.equal(url.origin, 'https://github.com');
+    assert.equal(url.pathname, '/dutchdronesquad/track-assets/issues/new');
+    assert.equal(url.searchParams.get('template'), 'submit-collection.yml');
+    assert.equal(url.searchParams.get('title'), 'collection: Racing & 東京 #1');
+    assert.equal(url.searchParams.get('organization'), 'Racing & 東京 #1');
+    assert.equal(url.searchParams.get('slug'), '');
+    assert.equal(url.searchParams.get('usage'), usage);
+    assert.equal(url.searchParams.has('permission'), false);
+    assert.equal(url.searchParams.has('artwork'), false);
+  }
+  assert.equal(new URL(submissionUrl('Club', ' club-2 ', submissionUsage[0])).searchParams.get('slug'), 'club-2');
 });
 
 test('issue bodies are parsed into values and attachment URLs', () => {

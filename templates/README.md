@@ -2,6 +2,8 @@
 
 Editable SVG sheets for designing your organization's artwork on obstacles TrackDraw already renders. You draw on a sheet; the panels a [collection](../docs/collection-contract.md) needs are generated from it. No Blender, 3D model or renderer change is needed.
 
+The easiest route is the [browser artwork designer](https://designer.trackdraw.app): choose an obstacle, add logos and colours, draw vector artwork and check its live 3D preview. **Submit artwork** downloads your editable SVG and opens a GitHub form with your organization and usage filled in. Attach the sheet there to submit it for review. The manual template workflow below remains available for other SVG editors.
+
 These are rendering templates: they match the surfaces TrackDraw draws, not a certified manufacturing pattern. Physical banners, seams, eyelets and print bleed may differ; check with your printer before ordering real panels.
 
 | Template | Sheet | Panels | Exported size per panel | Transparency | Reference |

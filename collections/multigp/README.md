@@ -106,6 +106,8 @@ If filenames change, either rename the runtime files back to the expected names 
 
 ## Verification
 
+Extraction and optimization are manual maintenance steps when MultiGP sources change. CI validates the committed textures with the same collection checks used for other organizations; it does not regenerate MultiGP artwork during every pull request.
+
 After replacing the GLB or textures:
 
 1. If source PNGs need regeneration, run the extractor or otherwise update the texture files in `collections/multigp/textures/`.

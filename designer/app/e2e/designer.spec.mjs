@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { preview } from "vite";
+import { unstable_startWorker } from "wrangler";
 import { chromium } from "playwright";
 import sharp from "sharp";
 import { checkCollections } from "../../../scripts/check-collections.mjs";
@@ -38,11 +38,16 @@ const manifest = Buffer.from(
 );
 before(async () => {
   directory = await mkdtemp(path.join(tmpdir(), "designer-app-"));
-  server = await preview({
-    root: new URL("../", import.meta.url).pathname,
-    preview: { host: "127.0.0.1", port: 0 },
+  server = await unstable_startWorker({
+    config: new URL("../wrangler.jsonc", import.meta.url).pathname,
+    dev: {
+      server: { hostname: "127.0.0.1", port: 0 },
+      inspector: false,
+      persist: false,
+      remote: false,
+    },
   });
-  url = `http://127.0.0.1:${server.httpServer.address().port}`;
+  url = (await server.url).origin;
   browser = await chromium.launch({
     args: [
       "--use-angle=swiftshader",
@@ -53,9 +58,7 @@ before(async () => {
 });
 after(async () => {
   await browser?.close();
-  await new Promise((resolve) =>
-    server ? server.httpServer.close(resolve) : resolve(),
-  );
+  await server?.dispose();
   if (directory) await rm(directory, { recursive: true, force: true });
 });
 async function openPage(t, viewport = { width: 1440, height: 1024 }) {
@@ -117,6 +120,106 @@ async function checkDownload(result) {
     1,
   );
 }
+
+test("Cloudflare serves SPA routes with CSP and caches only fingerprinted assets immutably", async () => {
+  const response = await fetch(`${url}/`);
+  assert.equal(response.status, 200);
+  const csp = response.headers.get("content-security-policy");
+  assert.match(csp, /script-src 'self';/);
+  assert.match(csp, /img-src 'self' blob: data:/);
+  assert.match(csp, /frame-ancestors 'none'/);
+  assert.equal(
+    response.headers.get("cache-control"),
+    "public, max-age=0, must-revalidate",
+  );
+  const html = await response.text();
+  const asset = /src="(\/assets\/index-[^"]+\.js)"/.exec(html)?.[1];
+  assert.ok(asset);
+  assert.equal(
+    (await fetch(`${url}${asset}`)).headers.get("cache-control"),
+    "public, max-age=31536000, immutable",
+  );
+  assert.equal(
+    (await fetch(`${url}/assets/trackdraw-logo.svg`)).headers.get(
+      "cache-control",
+    ),
+    "public, max-age=0, must-revalidate",
+  );
+  const deep = await fetch(`${url}/some/deep/link`, {
+    headers: { "Sec-Fetch-Mode": "navigate" },
+  });
+  assert.equal(deep.status, 200);
+  assert.equal(await deep.text(), html);
+  assert.equal(deep.headers.get("content-security-policy"), csp);
+});
+
+test("desktop and mobile submit a checked download and open the prefilled GitHub form", async (t) => {
+  for (const viewport of [
+    { width: 1440, height: 1024 },
+    { width: 390, height: 844 },
+  ]) {
+    const page = await openPage(t, viewport);
+    await draw(page);
+    const original = (await download(page)).design;
+    await page
+      .context()
+      .route("https://github.com/**", (route) =>
+        route.fulfill({ body: "Submission form" }),
+      );
+    await page
+      .getByRole("button", { name: "Submit artwork", exact: true })
+      .click();
+    const dialog = page.getByRole("dialog", {
+      name: "Submit obstacle artwork",
+    });
+    const submit = dialog.getByRole("button", {
+      name: "Download SVG and open GitHub",
+    });
+    assert.equal(await submit.isDisabled(), true);
+    await dialog
+      .getByLabel("Organization", { exact: true })
+      .fill("Racing & 東京");
+    await dialog.getByLabel("Short name (optional)").fill("racing-tokyo");
+    const usage = "In TrackDraw, including offline track exports";
+    await dialog
+      .getByLabel("Usage", { exact: true })
+      .selectOption({ label: usage });
+    const popupPending = page.waitForEvent("popup");
+    const downloadPending = page.waitForEvent("download");
+    await submit.click();
+    const popup = await popupPending;
+    await popup.waitForLoadState();
+    const destination = new URL(popup.url());
+    assert.equal(destination.searchParams.get("organization"), "Racing & 東京");
+    assert.equal(destination.searchParams.get("slug"), "racing-tokyo");
+    assert.equal(destination.searchParams.get("usage"), usage);
+    assert.equal(
+      destination.searchParams.get("template"),
+      "submit-collection.yml",
+    );
+    const result = await downloadPending;
+    const file = path.join(directory, `${crypto.randomUUID()}.svg`);
+    await result.saveAs(file);
+    const svg = await readFile(file, "utf8");
+    assert.deepEqual(parseSheet(templateDefinitions, svg), original);
+    await checkDownload({ svg, name: result.suggestedFilename() });
+    await popup.close();
+    assert.equal(await dialog.getByRole("status").isVisible(), true);
+    await dialog.getByRole("button", { name: "Close submission" }).focus();
+    await page.keyboard.press("r");
+    assert.equal(await dialog.isVisible(), true);
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "detached" });
+    assert.equal(await dialog.count(), 0);
+    assert.deepEqual((await download(page)).design, original);
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > innerWidth,
+      ),
+      false,
+    );
+  }
+});
 async function draw(page, tool = "Rectangle (R)") {
   await page.getByRole("button", { name: "Top panel", exact: true }).click();
   await page.getByRole("button", { name: tool, exact: true }).click();

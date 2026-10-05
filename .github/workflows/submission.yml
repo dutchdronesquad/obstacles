@@ -10,6 +10,7 @@ concurrency:
 jobs:
   # Downloads and renders the submitted SVGs without write access.
   prepare:
+    name: Prepare
     if: github.event.label.name == 'accepted-submission'
     runs-on: ubuntu-latest
     permissions:
@@ -36,6 +37,7 @@ jobs:
           include-hidden-files: false
   # Never renders or executes submitted content: writes the prepared files after path checks and opens the pull request.
   open:
+    name: Open PR
     needs: prepare
     # Also runs when prepare crashed, so the issue always hears what happened.
     if: always() && github.event.label.name == 'accepted-submission'

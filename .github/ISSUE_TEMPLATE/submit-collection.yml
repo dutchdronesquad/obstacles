@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Design each texture set on a copy of a [template sheet](https://github.com/dutchdronesquad/track-assets/blob/main/templates/README.md) and attach the saved `.svg` files below. After review, a pull request with 3D previews is opened automatically and linked here.
+        Create your artwork in the [browser designer](https://designer.trackdraw.app), or edit a [template sheet](https://github.com/dutchdronesquad/track-assets/blob/main/templates/README.md), and attach the saved `.svg` files below. After review, a pull request with 3D previews is opened automatically and linked here.
   - type: input
     id: organization
     attributes:
@@ -19,21 +19,20 @@ body:
     attributes:
       label: Short name
       description: Optional. Used in web addresses, for example `dds`. Leave empty to derive it from the organization name.
-  - type: textarea
+  - type: upload
     id: artwork
     attributes:
       label: Template sheets
       description: Drag your `.svg` files here, one per texture set.
     validations:
       required: true
-  - type: dropdown
+      accept: ".svg"
+  - type: input
     id: usage
     attributes:
       label: Usage
-      description: Where may this artwork be used? It stays your property either way.
-      options:
-        - In TrackDraw only
-        - In TrackDraw, including offline track exports
+      description: "Use `In TrackDraw only` or `In TrackDraw, including offline track exports`. The designer fills this in for you. Artwork stays your property either way."
+      value: In TrackDraw only
     validations:
       required: true
   - type: textarea
