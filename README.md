@@ -12,8 +12,6 @@
 
 Source models, artwork and browser-ready textures for drone racing obstacles, together with the scripts used to maintain them. Assets are grouped by the organization or brand they represent. Each collection documents its sources and maintenance workflow in its own directory.
 
-Available collections: [MultiGP](collections/multigp/README.md).
-
 Want to add your organization's obstacle artwork? Start with the [browser artwork designer](https://designer.trackdraw.app), then submit the downloaded SVG through its Submit artwork button. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [texture templates](templates/README.md) for the review flow and other editing options.
 
 The designer lets you create gate and flag sheets with logos, colours, free vector drawing, placement per panel and a live 3D preview. Everything stays in your browser until you attach your sheet on GitHub. You can also [run it locally](designer/app/README.md) with `npm run designer:dev` after installing dependencies.
