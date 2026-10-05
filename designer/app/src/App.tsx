@@ -14,7 +14,6 @@ import {
   ArrowDown,
   ArrowUp,
   ArrowsOut,
-  CaretDown,
   Circle,
   Cursor,
   DownloadSimple,
@@ -61,6 +60,7 @@ import {
   validTextureId,
 } from "./artwork.ts";
 import { downloadSheet, estimatePanelSizes, rasterizeSvg } from "./browser.ts";
+import { TemplatePicker } from "./TemplatePicker.tsx";
 import { sheets, templates } from "./templates.ts";
 import {
   CanvasEditor,
@@ -384,21 +384,6 @@ export function App() {
           />
           <span>Artwork designer</span>
         </div>
-        <label className="template-picker">
-          <span className="sr-only">Obstacle</span>
-          <select
-            disabled={busy}
-            value={doc.design.template}
-            onChange={(event) => void changeTemplate(event.target.value)}
-          >
-            {Object.keys(sheets).map((id) => (
-              <option key={id} value={id}>
-                {templates[id].name}
-              </option>
-            ))}
-          </select>
-          <CaretDown size={14} aria-hidden />
-        </label>
         <div className="header-actions">
           <Action
             icon={ArrowCounterClockwise}
@@ -495,7 +480,12 @@ export function App() {
         </nav>
         <section className="canvas-area" aria-label="Artwork workspace">
           <nav className="panel-tabs" aria-label="Panel focus">
-            <span className="panel-caption">Design view</span>
+            <TemplatePicker
+              value={doc.design.template}
+              disabled={busy}
+              onChange={(template) => void changeTemplate(template)}
+            />
+            <span className="panel-type-divider" aria-hidden />
             {[
               ["all", "Whole sheet"],
               ...Object.keys(definition.panels).map((id) => [
@@ -754,7 +744,12 @@ export function App() {
                     ))}
                   </div>
                   <div className="point-actions">
-                <button disabled={nodeIndex === 0 || pathNode?.[0] === 'M'} onClick={() => engine.current?.insertNode(nodeIndex)}>Add point</button>
+                    <button
+                      disabled={nodeIndex === 0 || pathNode?.[0] === "M"}
+                      onClick={() => engine.current?.insertNode(nodeIndex)}
+                    >
+                      Add point
+                    </button>
                     <button
                       disabled={nodeIndex === 0 || pathNode?.[0] === "Z"}
                       onClick={() => engine.current?.curveNode(nodeIndex, true)}

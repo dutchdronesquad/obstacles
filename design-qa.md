@@ -35,7 +35,7 @@ The source is a design direction rather than an exact data model. Canonical temp
 
 ## Interaction and runtime evidence
 
-Seven browser regressions cover SVG groups, transforms, hiding, grouping/ungrouping, pointer and keyboard drawing, Bézier handles, stationary untouched anchors, undo/redo, PNG/JPEG, SVG-text rasterization, older sheets, mobile download, unsafe imports and reopening. Downloaded gate and flag sheets pass the real collection checks. Browser tests capture page errors and assert that none occurred.
+Eight browser regressions cover SVG groups, transforms, hiding, grouping/ungrouping, pointer and keyboard drawing, Bézier handles, stationary untouched anchors, undo/redo, PNG/JPEG, SVG-text rasterization, older sheets, mobile download, unsafe imports and reopening. Downloaded gate and flag sheets pass the real collection checks. Browser tests capture page errors and assert that none occurred.
 
 Manual in-app browser checks covered desktop import and selection, panel switching, mobile layout and opening properties. The keyboard help uses a native modal dialog. Fonts are served locally.
 
@@ -44,3 +44,9 @@ Manual in-app browser checks covered desktop import and selection, panel switchi
 P3: live thumbnails for individual layers could improve scanning when a design contains many visually similar objects. Current names, geometry icons, visibility and lock controls remain usable.
 
 Live 3D preview and hosted submission remain separate work in issues #34 and #35.
+
+## Template picker refinement
+
+The type picker now sits at the start of the canvas toolbar beside Whole sheet and the panel tabs. It uses miniature canonical SVG sheets for both the trigger and menu options, replacing the unrelated garage and pennant symbols. This supersedes the original target's placement in the document header for this control.
+
+Evidence: [desktop](docs/designer/picker-desktop.jpg), [focused picker](docs/designer/picker-detail.jpg) and [mobile](docs/designer/picker-mobile.jpg). Desktop was captured at 1440 × 1024 CSS pixels, mobile at 390 × 844. The menu keeps the same blue selection, neutral borders and compact type hierarchy as the editor. Mobile shows the full selected type, and panel navigation scrolls horizontally. The native popover appears above the canvas without clipping. Arrow keys, Home/End, Enter, Escape, click-outside dismissal, focus restoration and unchanged-template selection are supported; the browser regression covers selection, dismissal, unchanged artwork and undo after switching templates. No actionable P0/P1/P2 findings remain.

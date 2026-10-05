@@ -151,9 +151,8 @@ test("SVG vector groups transform, hide, undo and reopen without changing the ex
   assert.equal(result.design.artwork[0].transform[4], 65);
   assert.equal(result.design.artwork[1].visible, false);
   assert.equal(result.design.colors.back, "#667788");
-  await page
-    .getByRole("combobox", { name: "Obstacle", exact: true })
-    .selectOption("corner-flag-v1");
+  await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
+  await page.getByRole("option", { name: "Corner flag", exact: true }).click();
   await page
     .getByLabel("Open a saved sheet")
     .setInputFiles(fixture(result.name, "image/svg+xml", result.svg));
@@ -185,10 +184,11 @@ test("free shapes, editable Bézier nodes, grouping and keyboard undo survive SV
   assert.equal(curve.kind, "path");
   assert.equal(curve.commands[1][0], "C");
   assert.equal(curve.commands[1][2], 32);
-  await page.getByRole('button', { name: 'Add point', exact: true }).click();
+  await page.getByRole("button", { name: "Add point", exact: true }).click();
   const split = (await download(page)).design.artwork[0];
   assert.equal(split.commands.length, curve.commands.length + 1);
-  assert.equal(split.commands[1][0], 'C'); assert.equal(split.commands[2][0], 'C');
+  assert.equal(split.commands[1][0], "C");
+  assert.equal(split.commands[2][0], "C");
   await page.getByRole("button", { name: "Duplicate", exact: true }).click();
   await page.getByRole("button", { name: "Select (V)", exact: true }).click();
   await page.getByRole("application").press("Control+z");
@@ -229,9 +229,8 @@ test("free shapes, editable Bézier nodes, grouping and keyboard undo survive SV
 
 test("mobile flag with rasterized text and hidden layers passes collection checks", async (t) => {
   const page = await openPage(t, { width: 390, height: 844 });
-  await page
-    .getByRole("combobox", { name: "Obstacle", exact: true })
-    .selectOption("corner-flag-v1");
+  await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
+  await page.getByRole("option", { name: "Corner flag", exact: true }).click();
   await upload(
     page,
     logoSvg.replace(
@@ -411,4 +410,41 @@ test("pointer drawing and path anchor dragging persist and preserve untouched an
   const result = await download(page);
   assert.equal(result.design.artwork.at(-1).name, "Pencil path");
   await checkDownload(result);
+});
+
+test("template picker supports keyboard selection, dismissal and undo without clearing a reselected sheet", async (t) => {
+  const page = await openPage(t);
+  await draw(page);
+  const original = (await download(page)).design;
+  const picker = page.getByRole("combobox", { name: "Obstacle", exact: true });
+  await picker.press("ArrowDown");
+  assert.equal(await picker.getAttribute("aria-expanded"), "true");
+  await page
+    .getByRole("option", { name: "Standard gate", exact: true })
+    .press("Escape");
+  assert.equal(await picker.getAttribute("aria-expanded"), "false");
+  assert.equal(
+    await picker.evaluate((element) => element === document.activeElement),
+    true,
+  );
+  await picker.click();
+  await page
+    .getByRole("option", { name: "Standard gate", exact: true })
+    .click();
+  assert.deepEqual((await download(page)).design, original);
+  await picker.press("ArrowUp");
+  await page
+    .getByRole("option", { name: "Corner flag", exact: true })
+    .press("Enter");
+  await page
+    .locator(".status")
+    .filter({ hasText: "New sheet started" })
+    .waitFor({ state: "attached" });
+  assert.equal((await download(page)).design.template, "corner-flag-v1");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await page.locator(".status").filter({ hasText: "Change undone" }).waitFor();
+  assert.deepEqual((await download(page)).design, original);
+  await picker.click();
+  await page.getByRole("button", { name: "Top panel", exact: true }).click();
+  assert.equal(await picker.getAttribute("aria-expanded"), "false");
 });
