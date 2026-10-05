@@ -15,7 +15,7 @@ Initial comparison evidence: [before visual fixes](docs/designer/before-visual-f
 ## Findings and corrections
 
 - P1, artwork colours: the first implementation comparison used a pale background and blue accent while the selected reference uses a dark gate and orange opening frame. Restored the canonical template colours. The final full comparison shows the intended contrast and artwork hierarchy.
-- P2, inspector density: initial heading and section spacing pushed layer controls below the visible inspector. Reduced the heading height and section padding, and aligned the inspector width to the source proportions. The final desktop capture shows all three artwork layers and the locked background.
+- P2, inspector density: initial heading and section spacing pushed layer controls below the visible inspector. Reduced the heading height and section padding, and aligned the inspector width to the source proportions. The final desktop capture shows all three artwork layers. The later Layers refinement keeps only user artwork in this list.
 - P2, selection and small control contrast: inherited canvas controls were too faint. Set explicit blue borders, white handles and larger touch handles; darkened secondary text. The final capture shows an unambiguous selection boundary.
 - P2, mobile download accessibility: hiding the button text also removed its accessible name. Added a persistent label. The mobile browser regression now downloads the flag sheet successfully.
 
@@ -31,17 +31,17 @@ No actionable P0/P1/P2 findings remain in the compared states.
 
 ## Accepted product differences
 
-The source is a design direction rather than an exact data model. Canonical template backgrounds and safe areas remain protected; free artwork layers are individually editable. The layer list therefore shows real objects rather than pretending each template guide is editable. Whole-sheet and panel tabs share one document. Geometry dimensions follow the object's local axes, and numeric opacity is retained beside stroke width. The inspector provides ungrouping, alignment and path-point editing beyond the mock. Raster and unsupported SVG features remain embedded images.
+The source is a design direction rather than an exact data model. Canonical template backgrounds and safe areas remain protected; free artwork layers are individually editable. The layer list shows editable artwork objects. Background, accents and guides remain in their existing sheet and canvas controls. Whole-sheet and panel tabs share one document. Geometry dimensions follow the object's local axes, and numeric opacity is retained beside stroke width. The inspector provides ungrouping, alignment and path-point editing beyond the mock. Raster and unsupported SVG features remain embedded images.
 
 ## Interaction and runtime evidence
 
-Nine browser regressions cover SVG groups, transforms, hiding, grouping/ungrouping, pointer and keyboard drawing, Bézier handles, stationary untouched anchors, undo/redo, PNG/JPEG, SVG-text rasterization, older sheets, mobile download, unsafe imports and reopening. Downloaded gate and flag sheets pass the real collection checks. Browser tests capture page errors and assert that none occurred.
+Ten browser regressions cover SVG groups, transforms, hiding, grouping/ungrouping, pointer and keyboard drawing, Bézier handles, stationary untouched anchors, undo/redo, PNG/JPEG, SVG-text rasterization, older sheets, mobile download, unsafe imports and reopening. Downloaded gate and flag sheets pass the real collection checks. Browser tests capture page errors and assert that none occurred.
 
 Manual in-app browser checks covered desktop import and selection, panel switching, mobile layout and opening properties. The keyboard help uses a native modal dialog. Fonts are served locally.
 
 ## Follow-up polish
 
-P3: live thumbnails for individual layers could improve scanning when a design contains many visually similar objects. Current names, geometry icons, visibility and lock controls remain usable.
+The later layer refinement adds live previews for individual artwork layers. No remaining layer-specific P3 findings were identified in the compared states.
 
 Live 3D preview and hosted submission remain separate work in issues #34 and #35.
 
@@ -55,4 +55,24 @@ Evidence: [desktop](docs/designer/picker-desktop.jpg), [focused picker](docs/des
 
 Accent style and Selected point now share the same dropdown control as the obstacle picker. Property menus match the width of their field, use a compact option row with a selection check, and retain the editor's blue focus and neutral border treatment. Menus flip above a field when needed and scroll for longer point lists.
 
-Evidence: [desktop](docs/designer/accent-desktop.jpg), [focused accent menu](docs/designer/accent-detail.jpg) and [mobile drawer](docs/designer/accent-mobile.jpg). Desktop and mobile were checked at the same viewport sizes used above. Keyboard opening, selection, Escape, Tab navigation and focus restoration were verified. The browser regression checks exported accents, undo, gate/flag-specific choices and viewport bounds on desktop and mobile; the path editing regression exercises the new point picker. All nine browser regressions pass. No actionable P0/P1/P2 findings remain in these states.
+Evidence: [desktop](docs/designer/accent-desktop.jpg), [focused accent menu](docs/designer/accent-detail.jpg) and [mobile drawer](docs/designer/accent-mobile.jpg). Desktop and mobile were checked at the same viewport sizes used above. Keyboard opening, selection, Escape, Tab navigation and focus restoration were verified. The browser regression checks exported accents, undo, gate/flag-specific choices and viewport bounds on desktop and mobile; the path editing regression exercises the new point picker. All ten browser regressions pass. No actionable P0/P1/P2 findings remain in these states.
+
+## Layer list fidelity refinement
+
+Initial comparison: [full view](docs/designer/layers-before-comparison.jpg) and [focused layers](docs/designer/layers-before-detail-comparison.jpg). The state matches the target: standard gate with DDS artwork and the left copy selected. The live implementation has three imported copies rather than the mock's two visible logo rows. Source and browser captures are normalized to 1440 × 1024 CSS pixels as above; the focused crops align the Layers sections, not their original vertical positions. The final focused implementation crop begins at y=735 in the normalized image.
+
+- P1, thumbnails: generic object symbols replace the artwork previews in the target. Show real artwork previews.
+- P2, row composition: the eye appears after the name and the row has no action menu. Match eye → thumbnail/name → lock → options, and make the menu operate on its own layer.
+- P2, list placement and selection: long properties push layers out of view, and multiple selection has no row indication. Keep the list below independently scrolling properties and mark each selected object.
+
+Post-fix evidence: [full view](docs/designer/layers-after-comparison.jpg), [focused comparison](docs/designer/layers-after-detail-comparison.jpg), [layer actions](docs/designer/layers-menu.jpg), [mobile drawer](docs/designer/layers-mobile.jpg) and [mobile actions](docs/designer/layers-mobile-menu.jpg). The final desktop and mobile captures use 1440 × 1024 and 390 × 844 CSS viewports, respectively, with the left DDS artwork selected. This refinement supersedes the earlier thumbnail follow-up.
+
+The user's clarification deliberately removes the mock's fixed post, frame and guide rows: Layers now contains only imported and drawn artwork. Their controls remain under Sheet appearance and in the canvas footer. The three actual artwork copies retain their real names and stacking order; the mock's illustrative row ordering is not treated as an editable template model.
+
+- Typography and copy: existing local Inter, compact 11 px layer names, an explicit empty state and the same functional action labels used in the editor.
+- Layout rhythm: eye, actual preview/name, lock and options align across each row. The list stays below independently scrolling properties; larger lists scroll internally. Mobile uses 42 px row controls.
+- Colours: neutral controls and separators with blue selection and hover states match the editor's selected design direction. Hidden layers dim their content while keeping visibility controls usable.
+- Asset fidelity: thumbnails render the actual imported vectors/images or drawn geometry through the shared SVG serializer. They preserve source proportions and display artwork upright for recognition; they are not generic object symbols or approximated logos.
+- Interaction: all selected rows are marked, including multi-selection. Per-layer menus select their own object before duplicating, reordering or deleting. Native popovers are remeasured after opening, so menus near the bottom flip upward. Keyboard opening, navigation, Escape and focus restoration were manually checked.
+
+All ten browser regressions pass. The layer regression checks desktop and mobile menu bounds, previews, multi-selection, targeted actions, lock/visibility, undo, unchanged sheet settings and the real collection check on the final SVG. Browser tests assert no page errors. No actionable P0/P1/P2 differences remain after the explicit artwork-only scope adjustment.

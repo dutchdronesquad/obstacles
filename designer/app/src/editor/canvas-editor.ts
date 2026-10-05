@@ -77,6 +77,9 @@ export interface EditorView {
     kind: string;
     locked: boolean;
     visible: boolean;
+    selected: boolean;
+    width: number;
+    height: number;
   }[];
 }
 interface Callbacks {
@@ -978,6 +981,7 @@ export class CanvasEditor {
         selection[key] = values.length === 1 ? values[0] : "mixed";
       }
     }
+    const activeIds = new Set(this.canvas.getActiveObjects().map(item => item.artworkId));
     this.callbacks.view({
       tool: this.tool,
       panel: this.panel,
@@ -995,6 +999,9 @@ export class CanvasEditor {
           kind: object.type.toLowerCase(),
           locked: !object.selectable,
           visible: object.visible,
+          selected: activeIds.has(object.artworkId),
+          width: object.width,
+          height: object.height,
         }))
         .reverse(),
     });

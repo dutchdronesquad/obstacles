@@ -17,14 +17,10 @@ import {
   Circle,
   Cursor,
   DownloadSimple,
-  Eye,
-  EyeSlash,
   FileArrowUp,
   Hand,
   Image,
   Link,
-  Lock,
-  LockOpen,
   Minus,
   PenNib,
   PencilSimple,
@@ -60,6 +56,7 @@ import {
 } from "./artwork.ts";
 import { downloadSheet, estimatePanelSizes, rasterizeSvg } from "./browser.ts";
 import { DropdownSelect } from "./DropdownSelect.tsx";
+import { LayersPanel } from "./LayersPanel.tsx";
 import { TemplatePicker } from "./TemplatePicker.tsx";
 import { sheets, templates } from "./templates.ts";
 import {
@@ -566,404 +563,361 @@ export function App() {
               className="mobile-close"
             />
           </div>
-          {hasSelection ? (
-            <>
-              <div className="selected-object">
-                <ObjectIcon kind={selected.kind} />
-                <div>
-                  <input
-                    aria-label="Object name"
-                    readOnly={selected.count > 1}
-                    maxLength={80}
-                    value={selected.name}
-                    onChange={(event) => update("name", event.target.value)}
-                  />
-                  <span>
-                    {selected.count > 1
-                      ? `${selected.count} objects selected`
-                      : `${selected.kind === "group" ? "Vector group" : selected.kind === "image" ? "Embedded image" : "Vector shape"} · editable artwork`}
-                  </span>
-                </div>
-              </div>
-              <PropertySection title="Transform">
-                <div className="property-grid">
-                  {(["x", "y", "width", "height"] as const).map((key) => (
-                    <NumberField
-                      key={key}
-                      label={
-                        { x: "X", y: "Y", width: "Width", height: "Height" }[
-                          key
-                        ]
-                      }
-                      value={selected[key]}
-                      min={
-                        key === "width" || key === "height" ? 0.01 : undefined
-                      }
-                      onChange={(value) => update(key, value)}
+          <div className="inspector-content">
+            {hasSelection ? (
+              <>
+                <div className="selected-object">
+                  <ObjectIcon kind={selected.kind} />
+                  <div>
+                    <input
+                      aria-label="Object name"
+                      readOnly={selected.count > 1}
+                      maxLength={80}
+                      value={selected.name}
+                      onChange={(event) => update("name", event.target.value)}
                     />
-                  ))}
-                  <NumberField
-                    label="Rotation"
-                    value={selected.angle}
-                    onChange={(value) => update("angle", value)}
-                  />
-                  <button
-                    className={`link-dimensions ${aspect ? "active" : ""}`}
-                    aria-label="Lock aspect ratio"
-                    aria-pressed={aspect}
-                    onClick={() => setAspect(!aspect)}
-                  >
-                    {aspect ? <Link size={18} /> : <LinkBreak size={18} />}
-                    <span>{aspect ? "Linked" : "Free"}</span>
-                  </button>
-                </div>
-              </PropertySection>
-              <PropertySection title="Appearance">
-                <div className="paint-grid">
-                  {selected.kind !== "image" && (
-                    <>
-                      <PaintField
-                        label="Fill"
-                        value={selected.fill}
-                        optional
-                        onChange={(value) => update("fill", value)}
-                      />
-                      <PaintField
-                        label="Stroke"
-                        value={selected.stroke}
-                        optional
-                        onChange={(value) => update("stroke", value)}
-                      />
-                      <NumberField
-                        label="Stroke width"
-                        value={selected.strokeWidth}
-                        min={0}
-                        onChange={(value) => update("strokeWidth", value)}
-                      />
-                    </>
-                  )}
-                  <NumberField
-                    label="Opacity %"
-                    value={Math.round(selected.opacity * 100)}
-                    min={0}
-                    max={100}
-                    onChange={(value) => update("opacity", value / 100)}
-                  />
-                </div>
-              </PropertySection>
-              <div className="object-actions">
-                <Action
-                  icon={Copy}
-                  label="Duplicate"
-                  onClick={() => act(() => engine.current?.duplicate())}
-                />
-                <Action
-                  icon={ArrowUp}
-                  label="Bring forward"
-                  onClick={() => engine.current?.order(1)}
-                />
-                <Action
-                  icon={ArrowDown}
-                  label="Send backward"
-                  onClick={() => engine.current?.order(-1)}
-                />
-                <Action
-                  icon={Stack}
-                  label="Group selection"
-                  disabled={selected.count < 2}
-                  onClick={() => engine.current?.group()}
-                />
-                <Action
-                  icon={Trash}
-                  label="Delete selection"
-                  onClick={() => engine.current?.deleteSelection()}
-                />
-                <span className="divider" />
-                <Action
-                  icon={AlignLeft}
-                  label="Align left"
-                  onClick={() => engine.current?.align("left")}
-                />
-                <Action
-                  icon={AlignCenterHorizontal}
-                  label="Align centre"
-                  onClick={() => engine.current?.align("center")}
-                />
-                <Action
-                  icon={AlignRight}
-                  label="Align right"
-                  onClick={() => engine.current?.align("right")}
-                />
-              </div>
-              {selected.kind === "group" && (
-                <button
-                  className="subtle-button"
-                  onClick={() => engine.current?.ungroup()}
-                >
-                  Ungroup to edit individual shapes
-                </button>
-              )}
-              {["rect", "ellipse"].includes(selected.kind) && (
-                <button
-                  className="subtle-button"
-                  onClick={() => engine.current?.convertToPath()}
-                >
-                  Convert to editable path
-                </button>
-              )}
-              {selected.nodes && (
-                <PropertySection title="Path points">
-                  <div className="field">
-                    <span>Selected point</span>
-                    <DropdownSelect
-                      label="Selected point"
-                      value={Math.min(nodeIndex, selected.nodes.length - 1)}
-                      onChange={setNodeIndex}
-                      choices={selected.nodes.map((command, index) => ({
-                        value: index,
-                        label:
-                          command[0] === "Z"
-                            ? "Close path"
-                            : `Point ${index + 1} · ${command[0] === "C" || command[0] === "Q" ? "curve" : "corner"}`,
-                      }))}
-                    />
+                    <span>
+                      {selected.count > 1
+                        ? `${selected.count} objects selected`
+                        : `${selected.kind === "group" ? "Vector group" : selected.kind === "image" ? "Embedded image" : "Vector shape"} · editable artwork`}
+                    </span>
                   </div>
+                </div>
+                <PropertySection title="Transform">
                   <div className="property-grid">
-                    {pathNode?.slice(1).map((value, index) => (
+                    {(["x", "y", "width", "height"] as const).map((key) => (
                       <NumberField
-                        key={`${nodeIndex}-${index}`}
-                        label={`${index >= pathNode.length - 3 ? "Anchor" : `Handle ${Math.floor(index / 2) + 1}`} ${index % 2 ? "Y" : "X"}`}
-                        value={Number(value)}
-                        onChange={(value) =>
-                          engine.current?.editNode(nodeIndex, index, value)
+                        key={key}
+                        label={
+                          { x: "X", y: "Y", width: "Width", height: "Height" }[
+                            key
+                          ]
                         }
+                        value={selected[key]}
+                        min={
+                          key === "width" || key === "height" ? 0.01 : undefined
+                        }
+                        onChange={(value) => update(key, value)}
                       />
                     ))}
-                  </div>
-                  <div className="point-actions">
+                    <NumberField
+                      label="Rotation"
+                      value={selected.angle}
+                      onChange={(value) => update("angle", value)}
+                    />
                     <button
-                      disabled={nodeIndex === 0 || pathNode?.[0] === "M"}
-                      onClick={() => engine.current?.insertNode(nodeIndex)}
+                      className={`link-dimensions ${aspect ? "active" : ""}`}
+                      aria-label="Lock aspect ratio"
+                      aria-pressed={aspect}
+                      onClick={() => setAspect(!aspect)}
                     >
-                      Add point
-                    </button>
-                    <button
-                      disabled={nodeIndex === 0 || pathNode?.[0] === "Z"}
-                      onClick={() => engine.current?.curveNode(nodeIndex, true)}
-                    >
-                      Curve
-                    </button>
-                    <button
-                      disabled={nodeIndex === 0 || pathNode?.[0] === "Z"}
-                      onClick={() =>
-                        engine.current?.curveNode(nodeIndex, false)
-                      }
-                    >
-                      Corner
-                    </button>
-                    <button
-                      disabled={nodeIndex === 0 || selected.nodes.length < 3}
-                      onClick={() => {
-                        engine.current?.removeNode(nodeIndex);
-                        setNodeIndex(Math.max(0, nodeIndex - 1));
-                      }}
-                    >
-                      Remove point
+                      {aspect ? <Link size={18} /> : <LinkBreak size={18} />}
+                      <span>{aspect ? "Linked" : "Free"}</span>
                     </button>
                   </div>
-                  <p className="hint">
-                    Use Edit points (N) to drag anchors and curve handles on the
-                    canvas.
-                  </p>
                 </PropertySection>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="sheet-summary">
-                <Square size={24} />
-                <div>
-                  <strong>{definition.name}</strong>
-                  <span>Editable artwork sheet</span>
+                <PropertySection title="Appearance">
+                  <div className="paint-grid">
+                    {selected.kind !== "image" && (
+                      <>
+                        <PaintField
+                          label="Fill"
+                          value={selected.fill}
+                          optional
+                          onChange={(value) => update("fill", value)}
+                        />
+                        <PaintField
+                          label="Stroke"
+                          value={selected.stroke}
+                          optional
+                          onChange={(value) => update("stroke", value)}
+                        />
+                        <NumberField
+                          label="Stroke width"
+                          value={selected.strokeWidth}
+                          min={0}
+                          onChange={(value) => update("strokeWidth", value)}
+                        />
+                      </>
+                    )}
+                    <NumberField
+                      label="Opacity %"
+                      value={Math.round(selected.opacity * 100)}
+                      min={0}
+                      max={100}
+                      onChange={(value) => update("opacity", value / 100)}
+                    />
+                  </div>
+                </PropertySection>
+                <div className="object-actions">
+                  <Action
+                    icon={Copy}
+                    label="Duplicate"
+                    onClick={() => act(() => engine.current?.duplicate())}
+                  />
+                  <Action
+                    icon={ArrowUp}
+                    label="Bring forward"
+                    onClick={() => engine.current?.order(1)}
+                  />
+                  <Action
+                    icon={ArrowDown}
+                    label="Send backward"
+                    onClick={() => engine.current?.order(-1)}
+                  />
+                  <Action
+                    icon={Stack}
+                    label="Group selection"
+                    disabled={selected.count < 2}
+                    onClick={() => engine.current?.group()}
+                  />
+                  <Action
+                    icon={Trash}
+                    label="Delete selection"
+                    onClick={() => engine.current?.deleteSelection()}
+                  />
+                  <span className="divider" />
+                  <Action
+                    icon={AlignLeft}
+                    label="Align left"
+                    onClick={() => engine.current?.align("left")}
+                  />
+                  <Action
+                    icon={AlignCenterHorizontal}
+                    label="Align centre"
+                    onClick={() => engine.current?.align("center")}
+                  />
+                  <Action
+                    icon={AlignRight}
+                    label="Align right"
+                    onClick={() => engine.current?.align("right")}
+                  />
                 </div>
-              </div>
-              <PropertySection title="Sheet appearance">
-                <div className="paint-grid">
-                  <PaintField
-                    label="Background"
-                    value={doc.design.colors.background}
-                    onChange={(value) =>
-                      changeBase({
-                        colors: { ...doc.design.colors, background: value },
-                      })
-                    }
-                  />
-                  <PaintField
-                    label="Accent"
-                    value={doc.design.colors.accent}
-                    onChange={(value) =>
-                      changeBase({
-                        colors: { ...doc.design.colors, accent: value },
-                      })
-                    }
-                  />
-                  {definition.unprintedBack && (
+                {selected.kind === "group" && (
+                  <button
+                    className="subtle-button"
+                    onClick={() => engine.current?.ungroup()}
+                  >
+                    Ungroup to edit individual shapes
+                  </button>
+                )}
+                {["rect", "ellipse"].includes(selected.kind) && (
+                  <button
+                    className="subtle-button"
+                    onClick={() => engine.current?.convertToPath()}
+                  >
+                    Convert to editable path
+                  </button>
+                )}
+                {selected.nodes && (
+                  <PropertySection title="Path points">
+                    <div className="field">
+                      <span>Selected point</span>
+                      <DropdownSelect
+                        label="Selected point"
+                        value={Math.min(nodeIndex, selected.nodes.length - 1)}
+                        onChange={setNodeIndex}
+                        choices={selected.nodes.map((command, index) => ({
+                          value: index,
+                          label:
+                            command[0] === "Z"
+                              ? "Close path"
+                              : `Point ${index + 1} · ${command[0] === "C" || command[0] === "Q" ? "curve" : "corner"}`,
+                        }))}
+                      />
+                    </div>
+                    <div className="property-grid">
+                      {pathNode?.slice(1).map((value, index) => (
+                        <NumberField
+                          key={`${nodeIndex}-${index}`}
+                          label={`${index >= pathNode.length - 3 ? "Anchor" : `Handle ${Math.floor(index / 2) + 1}`} ${index % 2 ? "Y" : "X"}`}
+                          value={Number(value)}
+                          onChange={(value) =>
+                            engine.current?.editNode(nodeIndex, index, value)
+                          }
+                        />
+                      ))}
+                    </div>
+                    <div className="point-actions">
+                      <button
+                        disabled={nodeIndex === 0 || pathNode?.[0] === "M"}
+                        onClick={() => engine.current?.insertNode(nodeIndex)}
+                      >
+                        Add point
+                      </button>
+                      <button
+                        disabled={nodeIndex === 0 || pathNode?.[0] === "Z"}
+                        onClick={() =>
+                          engine.current?.curveNode(nodeIndex, true)
+                        }
+                      >
+                        Curve
+                      </button>
+                      <button
+                        disabled={nodeIndex === 0 || pathNode?.[0] === "Z"}
+                        onClick={() =>
+                          engine.current?.curveNode(nodeIndex, false)
+                        }
+                      >
+                        Corner
+                      </button>
+                      <button
+                        disabled={nodeIndex === 0 || selected.nodes.length < 3}
+                        onClick={() => {
+                          engine.current?.removeNode(nodeIndex);
+                          setNodeIndex(Math.max(0, nodeIndex - 1));
+                        }}
+                      >
+                        Remove point
+                      </button>
+                    </div>
+                    <p className="hint">
+                      Use Edit points (N) to drag anchors and curve handles on
+                      the canvas.
+                    </p>
+                  </PropertySection>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="sheet-summary">
+                  <Square size={24} />
+                  <div>
+                    <strong>{definition.name}</strong>
+                    <span>Editable artwork sheet</span>
+                  </div>
+                </div>
+                <PropertySection title="Sheet appearance">
+                  <div className="paint-grid">
                     <PaintField
-                      label="Gate back"
-                      value={doc.design.colors.back ?? "#ffffff"}
+                      label="Background"
+                      value={doc.design.colors.background}
                       onChange={(value) =>
                         changeBase({
-                          colors: { ...doc.design.colors, back: value },
+                          colors: { ...doc.design.colors, background: value },
                         })
                       }
                     />
-                  )}
-                </div>
-                <div className="field">
-                  <span>Accent style</span>
-                  <DropdownSelect
-                    label="Accent style"
-                    value={doc.design.accent}
-                    disabled={busy}
-                    onChange={(accent) => changeBase({ accent })}
-                    choices={accentStyles(definition).map((style) => ({
-                      value: style,
-                      label: {
-                        none: "None",
-                        frame: "Opening frame",
-                        band: "Bottom band",
-                      }[style],
-                    }))}
-                  />
-                </div>
-              </PropertySection>
-              <PropertySection title="Logo placement">
-                <label className="checkbox">
-                  <input
-                    type="checkbox"
-                    checked={allPanels}
-                    onChange={(event) => setAllPanels(event.target.checked)}
-                  />
-                  Add imported logos to every panel
-                </label>
-                <p className="hint">
-                  Logos follow each panel’s reading direction. Every copy can be
-                  moved and edited independently.
-                </p>
-                <button
-                  className="subtle-button"
-                  disabled={busy}
-                  onClick={() => logoInput.current?.click()}
-                >
-                  <Image size={17} /> Import SVG, PNG or JPEG
-                </button>
-              </PropertySection>
-              <PropertySection title="Save your artwork">
-                <label className="field mobile-sheet-name">
-                  Sheet name
-                  <input
-                    maxLength={80}
-                    value={doc.design.name ?? ""}
-                    onChange={(event) =>
-                      changeBase({ name: event.target.value || undefined })
-                    }
-                  />
-                </label>
-                <label className="field">
-                  Texture ID
-                  <input
-                    value={doc.textureId}
-                    aria-invalid={!validTextureId(doc.textureId)}
-                    spellCheck={false}
-                    onChange={(event) =>
-                      commit({ ...doc, textureId: event.target.value })
-                    }
-                  />
-                </label>
-                <p
-                  className={
-                    validTextureId(doc.textureId) ? "hint" : "field-error"
-                  }
-                >
-                  Use lowercase letters, digits and single hyphens.
-                </p>
-                <p className="hint">
-                  Download your SVG before leaving. Open it here later to keep
-                  editing.
-                </p>
-              </PropertySection>
-            </>
-          )}
-          <PropertySection title="Layers">
-            <div className="layers">
-              {view.layers.map((layer) => (
-                <div
-                  key={layer.id}
-                  className={`layer ${selected?.id === layer.id ? "selected" : ""} ${!layer.visible ? "hidden-layer" : ""}`}
-                >
-                  <ObjectIcon kind={layer.kind} />
+                    <PaintField
+                      label="Accent"
+                      value={doc.design.colors.accent}
+                      onChange={(value) =>
+                        changeBase({
+                          colors: { ...doc.design.colors, accent: value },
+                        })
+                      }
+                    />
+                    {definition.unprintedBack && (
+                      <PaintField
+                        label="Gate back"
+                        value={doc.design.colors.back ?? "#ffffff"}
+                        onChange={(value) =>
+                          changeBase({
+                            colors: { ...doc.design.colors, back: value },
+                          })
+                        }
+                      />
+                    )}
+                  </div>
+                  <div className="field">
+                    <span>Accent style</span>
+                    <DropdownSelect
+                      label="Accent style"
+                      value={doc.design.accent}
+                      disabled={busy}
+                      onChange={(accent) => changeBase({ accent })}
+                      choices={accentStyles(definition).map((style) => ({
+                        value: style,
+                        label: {
+                          none: "None",
+                          frame: "Opening frame",
+                          band: "Bottom band",
+                        }[style],
+                      }))}
+                    />
+                  </div>
+                </PropertySection>
+                <PropertySection title="Logo placement">
+                  <label className="checkbox">
+                    <input
+                      type="checkbox"
+                      checked={allPanels}
+                      onChange={(event) => setAllPanels(event.target.checked)}
+                    />
+                    Add imported logos to every panel
+                  </label>
+                  <p className="hint">
+                    Logos follow each panel’s reading direction. Every copy can
+                    be moved and edited independently.
+                  </p>
                   <button
-                    className="layer-name"
-                    onClick={(event) => {
-                      engine.current?.select(layer.id, event.shiftKey);
-                      setSheetSettings(false);
-                    }}
-                    disabled={layer.locked || !layer.visible}
+                    className="subtle-button"
+                    disabled={busy}
+                    onClick={() => logoInput.current?.click()}
                   >
-                    {layer.name}
+                    <Image size={17} /> Import SVG, PNG or JPEG
                   </button>
-                  <Action
-                    icon={layer.visible ? Eye : EyeSlash}
-                    label={`${layer.visible ? "Hide" : "Show"} ${layer.name}`}
-                    onClick={() =>
-                      engine.current?.setLayer(
-                        layer.id,
-                        "visible",
-                        !layer.visible,
-                      )
+                </PropertySection>
+                <PropertySection title="Save your artwork">
+                  <label className="field mobile-sheet-name">
+                    Sheet name
+                    <input
+                      maxLength={80}
+                      value={doc.design.name ?? ""}
+                      onChange={(event) =>
+                        changeBase({ name: event.target.value || undefined })
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    Texture ID
+                    <input
+                      value={doc.textureId}
+                      aria-invalid={!validTextureId(doc.textureId)}
+                      spellCheck={false}
+                      onChange={(event) =>
+                        commit({ ...doc, textureId: event.target.value })
+                      }
+                    />
+                  </label>
+                  <p
+                    className={
+                      validTextureId(doc.textureId) ? "hint" : "field-error"
                     }
-                  />
-                  <Action
-                    icon={layer.locked ? Lock : LockOpen}
-                    label={`${layer.locked ? "Unlock" : "Lock"} ${layer.name}`}
-                    onClick={() =>
-                      engine.current?.setLayer(
-                        layer.id,
-                        "locked",
-                        !layer.locked,
-                      )
-                    }
-                  />
-                </div>
-              ))}
-              <button
-                className="template-layer"
-                onClick={() => setSheetSettings(true)}
-              >
-                <Square size={18} />
-                <span>Sheet background</span>
-                <Lock size={14} />
-              </button>
-            </div>
-            <p className="hint layer-hint">
-              Shift-click layers to select more than one.
-            </p>
-          </PropertySection>
-          {(error || rendered.error) && (
-            <p className="error" role="alert">
-              {error || rendered.error}
-            </p>
-          )}
-          {warnings.length > 0 && (
-            <div className="warnings">
-              <strong>Check before downloading</strong>
-              <ul>
-                {warnings.map((warning) => (
-                  <li key={warning}>{warning}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+                  >
+                    Use lowercase letters, digits and single hyphens.
+                  </p>
+                  <p className="hint">
+                    Download your SVG before leaving. Open it here later to keep
+                    editing.
+                  </p>
+                </PropertySection>
+              </>
+            )}
+            {(error || rendered.error) && (
+              <p className="error" role="alert">
+                {error || rendered.error}
+              </p>
+            )}
+            {warnings.length > 0 && (
+              <div className="warnings">
+                <strong>Check before downloading</strong>
+                <ul>
+                  {warnings.map((warning) => (
+                    <li key={warning}>{warning}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          <LayersPanel
+            view={view}
+            design={doc.design}
+            editor={engine.current}
+            busy={busy}
+            onArtworkSelection={() => setSheetSettings(false)}
+            onError={(error) => setError(message(error))}
+          />
           <p className="local-note">Your files stay in your browser.</p>
         </aside>
       </div>

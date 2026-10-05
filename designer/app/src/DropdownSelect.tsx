@@ -47,27 +47,24 @@ export function DropdownSelect<T extends string | number>({
   useEffect(() => {
     if (disabled) menu.current?.hidePopover();
   }, [disabled]);
+  const place = () => {
+    const bounds = trigger.current!.getBoundingClientRect();
+    const width = Math.min(
+      menuHeading ? 270 : bounds.width,
+      window.innerWidth - 24,
+    );
+    const height = menu.current!.getBoundingClientRect().height;
+    setPosition({
+      width,
+      top:
+        bounds.bottom + height + 8 <= window.innerHeight - 12
+          ? bounds.bottom + 8
+          : Math.max(12, bounds.top - height - 8),
+      left: Math.max(12, Math.min(bounds.left, window.innerWidth - width - 12)),
+    });
+  };
   useLayoutEffect(() => {
     if (!open) return;
-    const place = () => {
-      const bounds = trigger.current!.getBoundingClientRect();
-      const width = Math.min(
-        menuHeading ? 270 : bounds.width,
-        window.innerWidth - 24,
-      );
-      const height = menu.current!.getBoundingClientRect().height;
-      setPosition({
-        width,
-        top:
-          bounds.bottom + height + 8 <= window.innerHeight - 12
-            ? bounds.bottom + 8
-            : Math.max(12, bounds.top - height - 8),
-        left: Math.max(
-          12,
-          Math.min(bounds.left, window.innerWidth - width - 12),
-        ),
-      });
-    };
     place();
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
@@ -127,6 +124,7 @@ export function DropdownSelect<T extends string | number>({
         style={position}
         onBeforeToggle={(event) => setOpen(event.newState === "open")}
         onToggle={(event) => {
+          if (event.newState === "open") place();
           if (
             event.newState === "open" &&
             document.activeElement === trigger.current

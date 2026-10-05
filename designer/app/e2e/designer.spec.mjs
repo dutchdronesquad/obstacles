@@ -556,3 +556,129 @@ test("accent dropdown preserves keyboard focus, undo and template-specific choic
     await checkDownload(result);
   }
 });
+
+test("layer previews, multi-selection and per-layer actions preserve artwork", async (t) => {
+  for (const viewport of [
+    { width: 1440, height: 1024 },
+    { width: 390, height: 844 },
+  ]) {
+    const page = await openPage(t, viewport);
+    await upload(page);
+    if (viewport.width < 900)
+      await page
+        .getByRole("button", { name: "Properties", exact: true })
+        .click();
+    const layers = page.getByRole("list", {
+      name: "Artwork layers",
+      exact: true,
+    });
+    const left = layers.getByRole("button", {
+      name: "club · Left post",
+      exact: true,
+    });
+    const right = layers.getByRole("button", {
+      name: "club · Right post",
+      exact: true,
+    });
+    const original = (await download(page)).design;
+    const leftId = original.artwork.find(
+      (item) => item.name === "club · Left post",
+    ).id;
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll(".layer-preview img")].every(
+        (image) => image.complete && image.naturalWidth > 0,
+      ),
+    );
+    await left.click();
+    await right.click({ modifiers: ["Shift"] });
+    assert.equal(await left.getAttribute("aria-pressed"), "true");
+    assert.equal(await right.getAttribute("aria-pressed"), "true");
+    const options = layers.getByRole("button", {
+      name: "Layer options for club · Left post",
+      exact: true,
+    });
+    await options.press("ArrowDown");
+    await page.waitForFunction(
+      () => document.activeElement?.getAttribute("role") === "menuitem",
+    );
+    const menuBounds = await page
+      .getByRole("menu", { name: "Actions for club · Left post", exact: true })
+      .boundingBox();
+    assert.ok(
+      menuBounds.x >= 0 &&
+        menuBounds.y >= 0 &&
+        menuBounds.x + menuBounds.width <= viewport.width &&
+        menuBounds.y + menuBounds.height <= viewport.height,
+    );
+
+    await page
+      .getByRole("menuitem", { name: "Duplicate", exact: true })
+      .press("Escape");
+    assert.equal(
+      await options.evaluate((element) => element === document.activeElement),
+      true,
+    );
+    await options.press("ArrowDown");
+    await page
+      .getByRole("menuitem", { name: "Bring forward", exact: true })
+      .press("Enter");
+    const moved = (await download(page)).design;
+    assert.equal(moved.artwork[1].id, leftId);
+    assert.equal(moved.artwork.length, original.artwork.length);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await page
+      .locator(".status")
+      .filter({ hasText: "Change undone" })
+      .waitFor({ state: "attached" });
+    assert.deepEqual((await download(page)).design, original);
+    await options.click();
+    await page
+      .getByRole("menuitem", { name: "Duplicate", exact: true })
+      .click();
+    await page.waitForFunction(
+      () =>
+        document.querySelectorAll(".layer:not(.template-layer)").length === 4,
+    );
+    const duplicated = (await download(page)).design;
+    assert.equal(duplicated.artwork.length, 4);
+    assert.equal(duplicated.artwork.at(-1).name, "club · Left post");
+    assert.deepEqual(duplicated.artwork.slice(0, 3), original.artwork);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await page
+      .locator(".status")
+      .filter({ hasText: "Change undone" })
+      .waitFor({ state: "attached" });
+    await layers
+      .getByRole("button", { name: "Lock club · Left post", exact: true })
+      .click();
+    assert.equal(await left.isDisabled(), true);
+    await layers
+      .getByRole("button", { name: "Hide club · Left post", exact: true })
+      .click();
+    const hidden = (await download(page)).design.artwork.find(
+      (item) => item.id === leftId,
+    );
+    assert.equal(hidden.visible, false);
+    assert.equal(hidden.locked, true);
+    await layers
+      .getByRole("button", { name: "Show club · Left post", exact: true })
+      .click();
+    await layers
+      .getByRole("button", { name: "Unlock club · Left post", exact: true })
+      .click();
+    assert.equal(await layers.getByRole("listitem").count(), 3);
+    await page
+      .getByRole("button", { name: "Sheet settings", exact: true })
+      .click();
+    assert.equal(
+      await page
+        .getByRole("combobox", { name: "Accent style", exact: true })
+        .innerText(),
+      "Opening frame",
+    );
+    await page.getByRole("checkbox", { name: "Guides", exact: true }).uncheck();
+    const result = await download(page);
+    assert.deepEqual(result.design, original);
+    await checkDownload(result);
+  }
+});

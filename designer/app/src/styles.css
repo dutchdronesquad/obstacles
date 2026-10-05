@@ -486,12 +486,22 @@ p {
 .inspector {
   width: 380px;
   flex-shrink: 0;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   border-left: 1px solid var(--border);
   background: #fff;
   scrollbar-width: thin;
 }
+.inspector-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
 .inspector-heading {
+  flex-shrink: 0;
   height: 44px;
   padding: 0 22px;
   display: flex;
@@ -654,7 +664,7 @@ p {
   font-size: 11px;
   border: 1px solid #dcecf6;
 }
-.inspector > .subtle-button {
+.inspector-content > .subtle-button {
   margin: 12px 22px;
 }
 .hint {
@@ -671,65 +681,144 @@ p {
   color: #64798b;
   line-height: 1.6;
 }
+.layers-section {
+  flex: 0 1 auto;
+  max-height: 45%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 22px 10px;
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+  background: #fff;
+}
+.layers-section h2 {
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
 .layers {
-  margin: 0 -10px;
+  margin: 0 -8px;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
 }
 .layer {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   align-items: center;
-  padding: 5px 6px;
+  min-height: 36px;
+  padding: 0 4px;
   border-radius: 5px;
 }
-.layer.selected {
-  background: #eaf5fc;
+.layer + .layer {
+  border-top: 1px solid #f0f3f6;
 }
-.layer.hidden-layer {
-  opacity: 0.55;
+.layer:hover {
+  background: #f6f9fc;
+}
+.layer.selected {
+  background: #e2f1fd;
+}
+.layer.hidden-layer .layer-name {
+  opacity: 0.5;
 }
 .object-icon {
   color: #96a9b9;
   flex-shrink: 0;
 }
 .layer-name {
-  font-size: 11px;
-  flex: 1;
-  text-align: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 6px 0;
-  min-width: 0;
-}
-.layer .icon-button {
-  width: 25px;
-  height: 27px;
-}
-.layer .icon-button svg {
-  width: 14px;
-  height: 14px;
-}
-.template-layer {
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
-  padding: 12px 6px;
-  color: #8898a7;
   font-size: 11px;
-}
-.template-layer span {
   flex: 1;
   text-align: left;
+  min-width: 0;
+  min-height: 36px;
+  padding: 2px 0;
+}
+.layer-name > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.layer-preview {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 26px;
+  color: #8197a8;
+}
+.layer-preview img {
+  max-width: 40px;
+  max-height: 26px;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.layer .icon-button {
+  width: 26px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  color: #617587;
+}
+.layer .icon-button svg {
+  width: 15px;
+  height: 15px;
+}
+.layer .layer-more svg {
+  width: 18px;
+  height: 18px;
+}
+.layer.selected .icon-button,
+.layer.selected .layer-name {
+  color: #266b98;
+}
+.layers-empty {
+  padding: 6px 8px 14px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.7;
 }
 .layer-hint {
+  flex-shrink: 0;
   font-size: 10px;
+  margin-top: 8px;
+}
+.layer-menu {
+  width: 204px;
+}
+.layer-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 34px;
+  padding: 8px 9px;
+  font-size: 12px;
+  text-align: left;
+}
+.layer-menu-item:hover,
+.layer-menu-item:focus-visible {
+  background: #f1f6fa;
+}
+.layer-menu-item:focus-visible {
+  outline-offset: -2px;
+}
+.layer-menu-item.destructive {
+  color: #b64431;
 }
 .local-note {
+  flex-shrink: 0;
   text-align: center;
   font-size: 10px;
   color: #6d7d8b;
-  padding: 20px 14px;
+  padding: 10px 14px;
 }
 .field-error,
 .error {
@@ -899,6 +988,10 @@ kbd {
   .property-section {
     padding: 18px;
   }
+  .layers-section {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
   .inspector-heading {
     padding: 0 18px;
   }
@@ -917,6 +1010,16 @@ kbd {
   }
 }
 @media (max-width: 900px) {
+  .layer {
+    min-height: 42px;
+  }
+  .layer-name,
+  .layer .icon-button {
+    min-height: 42px;
+  }
+  .layer-menu-item {
+    min-height: 42px;
+  }
   .mobile-sheet-name {
     display: flex;
     margin-bottom: 12px;
@@ -932,7 +1035,7 @@ kbd {
     box-shadow: -4px 0 25px #1f3d5420;
   }
   .inspector.open {
-    display: block;
+    display: flex;
   }
   .mobile-close {
     display: inline-flex;
