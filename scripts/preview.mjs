@@ -5,28 +5,15 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import sharp from 'sharp';
-import { workingTreeFiles } from './collections.mjs';
+import { templateDefinitions, workingTreeFiles } from './collections.mjs';
 import { withGeneratedTextures } from './templates.mjs';
 
-// How each panel appears to a viewer, in template units; rotate is the in-plane turn the renderer applies.
-export const previewLayouts = {
-  'gate-standard-v1': {
-    width: 700, height: 600, views: ['Front view'],
-    panels: { top: [0, 0, 700, 100], left: [0, 100, 100, 500], right: [600, 100, 100, 500] },
-    back: { top: '#202e5d', sides: '#f8fafc' },
-  },
-  'gate-championship-v1': {
-    width: 1000, height: 800, views: ['Front view'],
-    panels: { top: [0, 0, 1000, 200], left: [0, 200, 150, 600], right: [850, 200, 150, 600, 180] },
-    back: { top: '#202e5d', sides: '#f8fafc' },
-  },
-  'corner-flag-v1': {
-    width: 260, height: 511, views: ['Front, seen from the front', 'Back, seen from behind'],
-    panels: { front: [0, 0, 100, 511], back: [160, 0, 100, 511] },
-    poles: [[0, 511, 0, 0], [260, 511, 260, 0]],
-  },
-  'hurdle-v1': { width: 200, height: 100, views: ['Front view'], panels: { front: [0, 0, 200, 100] } },
-};
+// How each panel appears to a viewer, in template units; turn is the in-plane rotation the renderer applies.
+export const previewLayouts = Object.fromEntries(Object.entries(templateDefinitions).map(([id, { layout, views, panels, unprintedBack }]) => [id, {
+  width: layout.width, height: layout.height, views, poles: layout.poles,
+  panels: Object.fromEntries(Object.entries(panels).map(([panel, { x, y, width, height, turn = 0 }]) => [panel, [x, y, width, height, turn]])),
+  back: unprintedBack ? Object.fromEntries(Object.entries(panels).map(([panel, { color }]) => [panel, color])) : undefined,
+}]));
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const esc = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -64,12 +51,12 @@ async function textureCard(id, entry, read) {
   let back = '';
   if (layout.back) {
     const sy = top + artH + 40, s = scale * 0.35;
-    const colour = part => entry.backColor ?? layout.back[part];
+    const colour = panel => entry.backColor ?? layout.back[panel];
     back = `<text x="${left}" y="${sy - 10}" font-size="14" fill="#334155">Back view (unprinted${entry.backColor ? `, backColor ${esc(entry.backColor)}` : ', default colours'})</text>`
       + Object.entries(layout.panels).map(([panel, [x, y, w, h, rotate = 0]]) => {
         // Seen from behind, the viewer's left and right swap.
         const mx = layout.width - x - w;
-        return `<rect x="${left + mx * s}" y="${sy + y * s}" width="${w * s}" height="${h * s}" fill="${colour(panel === 'top' ? 'top' : 'sides')}" stroke="#94a3b8"/>`;
+        return `<rect x="${left + mx * s}" y="${sy + y * s}" width="${w * s}" height="${h * s}" fill="${colour(panel)}" stroke="#94a3b8"/>`;
       }).join('');
   }
   const views = layout.views.join(' · ');

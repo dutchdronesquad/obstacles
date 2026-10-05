@@ -4,23 +4,19 @@
 import { execFileSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import sharp from 'sharp';
+import { templateDefinitions } from './template-definitions.mjs';
 
+export { templateDefinitions };
+const byTemplate = derive => Object.fromEntries(Object.entries(templateDefinitions).map(([id, definition]) => [id, derive(definition)]));
 // Versioned artwork slots, not geometry or executable renderer definitions.
-export const templates = {
-  'gate-standard-v1': ['left', 'right', 'top'],
-  'gate-championship-v1': ['left', 'right', 'top'],
-  'corner-flag-v1': ['front', 'back'],
-  'hurdle-v1': ['front'],
-};
+export const templates = byTemplate(definition => Object.keys(definition.panels));
 // Templates whose back faces are unprinted and may take a solid backColor.
-export const backColorTemplates = new Set(['gate-standard-v1', 'gate-championship-v1']);
+export const backColorTemplates = new Set(Object.keys(templateDefinitions).filter(id => templateDefinitions[id].unprintedBack));
 // Panel width/height of the rendered surface, and whether its alpha is ignored (opaque) or required (cut-out).
-export const panelImages = {
-  'gate-standard-v1': { left: 1 / 5, right: 1 / 5, top: 7, alpha: 'opaque' },
-  'gate-championship-v1': { left: 1 / 4, right: 1 / 4, top: 5, alpha: 'opaque' },
-  'corner-flag-v1': { front: 0.18 / 0.92, back: 0.18 / 0.92, alpha: 'cut-out' },
-  'hurdle-v1': { front: 2, alpha: 'opaque' },
-};
+export const panelImages = byTemplate(definition => ({
+  ...Object.fromEntries(Object.entries(definition.panels).map(([panel, region]) => [panel, region.width / region.height])),
+  alpha: definition.transparency,
+}));
 export const limits = { aspectTolerance: 0.01, minEdge: 64, maxEdge: 4096, maxBytes: 512 * 1024, minOpaqueAlpha: 192, sourceDriftPixels: 20 };
 const slug = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const texturePath = /^textures\/[A-Za-z0-9][A-Za-z0-9._-]*\.webp$/;

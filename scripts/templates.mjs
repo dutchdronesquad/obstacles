@@ -3,26 +3,15 @@
 
 import path from 'node:path';
 import sharp from 'sharp';
-import { limits, templates } from './collections.mjs';
+import { limits, templateDefinitions, templates } from './collections.mjs';
 
-// Editable sheet regions per template; sheet units are 1/100 ft for gates.
-export const templateSheets = {
-  'gate-standard-v1': {
-    width: 700, height: 600, scale: 3,
-    panels: {
-      left: { x: 0, y: 100, width: 100, height: 500, background: '#f8fafc' },
-      right: { x: 600, y: 100, width: 100, height: 500, background: '#f8fafc' },
-      top: { x: 0, y: 0, width: 700, height: 100, background: '#202e5d' },
-    },
-  },
-  'corner-flag-v1': {
-    width: 260, height: 511, scale: 4,
-    panels: {
-      front: { x: 0, y: 0, width: 100, height: 511 },
-      back: { x: 160, y: 0, width: 100, height: 511 },
-    },
-  },
-};
+// Editable sheet regions per template, in sheet units (1/100 ft for gates); from templates/templates.json.
+export const templateSheets = Object.fromEntries(Object.entries(templateDefinitions)
+  .filter(([, definition]) => definition.sheet)
+  .map(([id, { layout, sheet, panels }]) => [id, {
+    width: layout.width, height: layout.height, scale: sheet.scale,
+    panels: Object.fromEntries(Object.entries(panels).map(([panel, { x, y, width, height, color }]) => [panel, { x, y, width, height, background: color }])),
+  }]));
 
 const hideGuides = '#guides{display:none !important}';
 const hideText = 'text{display:none !important}';

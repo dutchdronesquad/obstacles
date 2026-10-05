@@ -8,6 +8,7 @@ import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readd
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { templateDefinitions } from './template-definitions.mjs';
 
 export const fields = { organization: 'Organization', slug: 'Short name', artwork: 'Template sheets', usage: 'Usage', notes: 'Notes' };
 // Each usage choice maps to manifest terms; the artwork always stays the organization's property.
@@ -17,7 +18,6 @@ export const usageChoices = {
 };
 export const limits = { sheets: 10, bytes: 5 * 1024 * 1024, text: 2000 };
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const defaultIds = { 'gate-standard-v1': 'standard-gate', 'gate-championship-v1': 'championship-gate', 'corner-flag-v1': 'corner-flag', 'hurdle-v1': 'hurdle' };
 const attachmentPattern = /https:\/\/github\.com\/user-attachments\/(?:assets|files)\/[A-Za-z0-9/_.-]+/g;
 function fail(message) { throw new Error(message); }
 
@@ -73,9 +73,9 @@ export function buildSubmission({ values, sheets, issue, existing = [] }) {
     if (svg.length > limits.bytes) fail(`${where} is larger than ${limits.bytes / 1024 / 1024} MB.`);
     if (!/^\s*(?:<\?xml[^>]*\?>\s*)?(?:<!--[\s\S]*?-->\s*|<!DOCTYPE[^>]*>\s*)*<svg\b/i.test(svg)) fail(`${where} is not an SVG file.`);
     const template = /<svg\b[^>]*\sdata-template="([^"]+)"/.exec(svg)?.[1];
-    if (!template || !defaultIds[template]) fail(`${where} is not one of our template sheets; start from a file in templates/.`);
+    if (!template || !Object.hasOwn(templateDefinitions, template)) fail(`${where} is not one of our template sheets; start from a file in templates/.`);
     const named = /<svg\b[^>]*\sdata-name="([^"]*)"/.exec(svg)?.[1];
-    const base = (named && slugify(named)) || defaultIds[template];
+    const base = (named && slugify(named)) || templateDefinitions[template].defaultTextureId;
     let id = base;
     for (let n = 2; ids.has(id); n++) id = `${base}-${n}`;
     ids.add(id);
