@@ -10,3 +10,6 @@
 /assets/trackdraw-logo.svg
   ! Cache-Control
   Cache-Control: public, max-age=0, must-revalidate
+
+/favicon.ico
+  Cache-Control: public, max-age=0, must-revalidate
