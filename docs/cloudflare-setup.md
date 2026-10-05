@@ -51,3 +51,36 @@ If uploads succeed but verification reports `max-age=14400` instead of `max-age=
 Then rerun **Publish assets**. The verifier requests a fresh URL; existing browser caches can retain the old four-hour lifetime until it expires. See [Cloudflare Browser Cache TTL](https://developers.cloudflare.com/cache/how-to/edge-browser-cache-ttl/set-browser-ttl/).
 
 Collection metadata uses the same CORS and cache rules as textures, with `application/json` content type. The directory migration does not change existing image URLs. See [the collection contract](collection-contract.md) for publication order, discovery and failure handling.
+
+## Artwork designer
+
+The static artwork designer is a separate Worker named `trackdraw-designer`, configured in [`designer/app/wrangler.jsonc`](../designer/app/wrangler.jsonc). Cloudflare creates the DNS record and HTTPS certificate for `designer.trackdraw.app` through its custom-domain route. Assets use SPA fallback. The site has no backend or artwork storage; GitHub receives the SVG only when the contributor attaches it to the submission form.
+
+### Designer environments and token
+
+Create **designer-production** and **designer-preview** under the repository's **Settings → Environments**. Restrict `designer-production` to `main`. Restrict `designer-preview` to trusted same-repository branches and use environment reviewers if branches may be created by contributors whose code has not been reviewed. Fork pull requests never enter the preview job. Keep the existing R2 `production` environment and token unchanged.
+
+Create a separate Cloudflare token for designer deployment in the account that owns `trackdraw.app`: **Account → Workers Scripts → Edit**, **Account → Account Settings → Read** (for the workers.dev preview subdomain), **Zone → Zone → Read** and **Zone → Workers Routes → Edit** restricted to `trackdraw.app`. If custom-domain creation requires DNS permissions in the account, add **Zone → DNS → Edit** on that zone. Save `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` as environment secrets in each designer environment. Never commit token values or reuse the R2-only token.
+
+The [Designer workflow](../.github/workflows/designer.yml) first builds and tests without environment secrets, including a browser suite against the local Cloudflare assets runtime and a deploy dry run. Production and preview jobs download that exact build, install tooling with lifecycle scripts disabled and expose Cloudflare credentials only to Wrangler. Pushes affecting the designer on `main` deploy automatically; **Actions → Designer → Run workflow** on `main` retries production. Manual runs on other branches only build and test. Same-repository pull requests upload a version with `wrangler versions upload --preview-alias pr-<number>` and link it in the job summary and GitHub deployment. This does not change production traffic. Versions need an initial Worker deployment before their preview URLs can be used.
+
+For the first deployment or a local fallback after reviewing the source and tests:
+
+```sh
+npm ci
+npm run typecheck
+npm test
+npx playwright install chromium
+npm run designer:test
+npx wrangler deploy --config designer/app/wrangler.jsonc --dry-run
+npx wrangler login
+npx wrangler deploy --config designer/app/wrangler.jsonc
+```
+
+### Release acceptance
+
+1. Open `https://designer.trackdraw.app` and confirm HTTPS, the 2D editor, downloaded sheet reopening and the live 3D preview on desktop and mobile. HTML and the unversioned logo must revalidate; hashed assets use `max-age=31536000, immutable`. Confirm the CSP is present on the HTML and SPA fallback. Cloudflare browser cache rules must respect these response headers.
+2. Create a sheet using artwork you have permission to publish. Use **Submit artwork**, verify the prefilled organization, short name and usage, attach the downloaded SVG using the form's upload field, confirm permission and submit the issue. GitHub only prefills text fields: Usage is an input with the same two exact values the bot validates, while the designer provides a dropdown. Do not prefill the permission checkbox.
+3. A maintainer adds `accepted-submission`. Verify the bot downloads the real GitHub attachment, opens a collection PR and posts a passing preview comment with correctly mapped 3D renders. Keep the test collection at `status: example`; it is not publication permission. Record the issue, bot PR and check-run URLs with #35 before marking acceptance complete.
+
+References: [Workers static assets headers](https://developers.cloudflare.com/workers/static-assets/headers/), [custom domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/), [version URLs](https://developers.cloudflare.com/workers/versions-and-deployments/version-urls/) and [GitHub upload field schema](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema#upload).

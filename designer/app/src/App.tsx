@@ -24,6 +24,7 @@ import {
   Minus,
   PenNib,
   PencilSimple,
+  PaperPlaneTilt,
   Plus,
   Question,
   Selection,
@@ -59,6 +60,7 @@ import { DropdownSelect } from "./DropdownSelect.tsx";
 import { LivePreview } from "./LivePreview.tsx";
 import { LayersPanel } from "./LayersPanel.tsx";
 import { TemplatePicker } from "./TemplatePicker.tsx";
+import { SubmissionDialog } from "./SubmissionDialog.tsx";
 import { sheets, templates } from "./templates.ts";
 import {
   CanvasEditor,
@@ -127,6 +129,7 @@ export function App() {
     [allPanels, setAllPanels] = useState(true),
     [nodeIndex, setNodeIndex] = useState(0);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [submissionOpen, setSubmissionOpen] = useState(false);
   const [previewError, setPreviewError] = useState("");
   const [previewUnavailable, setPreviewUnavailable] = useState("");
   const [sizes, setSizes] = useState<{
@@ -252,7 +255,7 @@ export function App() {
     const onKey = (event: KeyboardEvent) => {
       if (
         event.target instanceof HTMLElement &&
-        event.target.closest("input,textarea,select,[contenteditable=true]")
+        event.target.closest("dialog,input,textarea,select,[contenteditable=true]")
       )
         return;
       if (busy || help) return;
@@ -437,6 +440,13 @@ export function App() {
             <DownloadSimple size={18} />
             <span>Download SVG</span>
           </button>
+          <Action
+            icon={PaperPlaneTilt}
+            label="Submit artwork"
+            disabled={busy || !validTextureId(doc.textureId) || !rendered.sheet || view.drawing}
+            onClick={() => setSubmissionOpen(true)}
+            text
+          />
         </div>
       </header>
       <input
@@ -1070,6 +1080,9 @@ export function App() {
         or Command Enter finishes. Escape cancels. Delete removes selected
         objects.
       </p>
+      {submissionOpen && (
+        <SubmissionDialog sheet={rendered.sheet} textureId={doc.textureId} onClose={() => setSubmissionOpen(false)} />
+      )}
       {help && (
         <dialog
           ref={shortcutDialog}

@@ -12,15 +12,17 @@ Any racing organization (a club, chapter, league, team or brand) can add artwork
 
 No git, Node.js or command line needed.
 
-1. **Download a template.** [`gate-standard-v1.svg`](templates/gate-standard-v1.svg) for the standard 5x5 gate or [`corner-flag-v1.svg`](templates/corner-flag-v1.svg) for the corner flag.
-2. **Design.** Open it in [Inkscape](https://inkscape.org/) (free) and draw on the Artwork layer; the [template guide](templates/README.md) explains orientation, safe areas and what to avoid. Save one file per texture set.
-3. **Submit.** [Open a "Submit obstacle artwork" issue](../../issues/new?template=submit-collection.yml), enter your organization's name and optionally a short name for web addresses (such as `dds`), drag your `.svg` files into the form, and choose where the artwork may be used. Credits and usage terms are filled in for you; a maintainer can adjust them in the pull request.
+1. **Design in your browser.** Open the [artwork designer](https://designer.trackdraw.app), choose a standard gate or corner flag, add your artwork and check the 3D preview. Download one SVG per texture set to keep an editable copy.
+2. **Submit artwork.** The designer's **Submit artwork** button asks for your organization's name, an optional short name for web addresses (such as `dds`) and where the artwork may be used. **Download SVG and open GitHub** downloads the current sheet and opens the submission form with those details filled in. A GitHub account is required.
+3. **Attach and confirm.** Add the downloaded `.svg` files under **Template sheets**, check the details and confirm you have permission to publish the artwork. The upload field accepts SVG only; the bot checks template structure and a 5 MB limit per sheet, with at most 10 sheets. Credits and usage terms are filled in for you; a maintainer can adjust them in the pull request.
+
+Prefer a desktop SVG editor? Download [`gate-standard-v1.svg`](templates/gate-standard-v1.svg) or [`corner-flag-v1.svg`](templates/corner-flag-v1.svg), draw on the Artwork layer in [Inkscape](https://inkscape.org/), then [open the submission form](https://github.com/dutchdronesquad/track-assets/issues/new?template=submit-collection.yml). The [template guide](templates/README.md) explains orientation, safe areas and what to avoid.
 
 A maintainer checks the submission and adds the `accepted-submission` label. A bot then creates the collection, opens a pull request and links it in your issue; the pull request shows 3D renders of your artwork in TrackDraw's viewer. If something needs fixing, the bot explains it in the issue.
 
 ## Working in the repository
 
-Prefer to design in your browser? The [local artwork designer](designer/app/README.md) supports the standard gate and corner flag, logo uploads, colours, free vector drawing and placement per panel. Run `npm ci` and `npm run designer:dev`, then download the sheet into your collection's `source/` directory. You can reopen downloaded sheets in the app. Check the result with the same commands below; hosting and the submission shortcut will follow separately.
+The [artwork designer](https://designer.trackdraw.app) also supports direct repository contributions: download the sheet into your collection's `source/` directory and check it with the commands below. Downloaded sheets can be reopened in the app. To work on the designer locally, see [designer/app/README.md](designer/app/README.md).
 
 Prefer git? Contribute directly with these steps.
 
@@ -51,3 +53,4 @@ Published files keep their URLs. To fix artwork compatibly, edit the same sheet;
 - **Repository setup:** the labels `submission` and `accepted-submission` must exist, and *Settings → Actions → General → Allow GitHub Actions to create and approve pull requests* must be enabled.
 - **Previews:** images live on the single-commit `pr-previews` branch and are removed when the pull request closes.
 - **Publishing:** on `main`, a job without secrets renders and checks everything and builds the public files; a separate `production` job only uploads those bytes, and a third job verifies them. Restrict the `production` environment to `main` and protect `main` so only reviewed changes reach it.
+- **Designer hosting:** the [Designer workflow](.github/workflows/designer.yml) builds and tests without secrets, then deploys the checked static site to Cloudflare. Use separate `designer-production` and `designer-preview` environments; the asset publishing token remains R2-only. See [Cloudflare setup](docs/cloudflare-setup.md#artwork-designer).

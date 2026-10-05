@@ -1,6 +1,6 @@
 # Plan: obstacle artwork designer
 
-Status: core implemented; local app implemented in issue #33, including the requested free vector editor. Live 3D preview is implemented in issue #34; hosting/submission (#35) remains planned.
+Status: core implemented; local app implemented in issue #33, including the requested free vector editor. Live 3D preview is implemented in issue #34. Hosting configuration, deployment/preview workflow and the submission shortcut are implemented for #35; production setup and a real GitHub upload-to-bot-PR smoke test remain release acceptance checks.
 
 ## Goal
 
@@ -75,7 +75,7 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 - Multiple logos and free vector artwork, background, accent and back colour.
 - Accent styles: none, line around the gate opening, band along the flag's bottom edge.
 - Automatic placement, adjustable per panel.
-- Interactive 2D canvas, live 3D preview and editable SVG download. The prefilled submit link follows in #35.
+- Interactive 2D canvas, live 3D preview, editable SVG download and a prefilled submit link.
 - Reopening a downloaded sheet via its embedded design data.
 
 **Later**
@@ -105,6 +105,6 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 - **Subdomain and hosting:** `designer.trackdraw.app` on Cloudflare Workers with static assets, not GitHub Pages; see Hosting.
 - **UI framework:** React.
 - **SVG logos with live text:** rasterized automatically, with a note that paths are sharper.
-- **Issue form upload field:** "Template sheets" becomes GitHub's dedicated `upload` field with `accept: ".svg"` and `required: true`, so the form itself refuses other files. The submission parser already accepts both `user-attachments/assets` and `user-attachments/files` links; the switch lands with milestone 5 and is confirmed with one real test submission.
+- **Issue form upload field:** "Template sheets" uses GitHub's dedicated `upload` field with `accept: ".svg"` and `required: true` under `validations`, so the form itself refuses other files. The submission parser accepts both `user-attachments/assets` and `user-attachments/files` links. Milestone 5 requires one real test submission to confirm the complete bot flow.
+- **Usage prefill:** a live check of GitHub's form confirmed that dropdown query parameters are ignored. The designer keeps its two-choice dropdown; GitHub's Usage field is a text input so its value can be prefilled. The bot validates the same exact choices and rejects unknown values. Direct form users start with the narrower `In TrackDraw only` value.
 - **Repository layout:** npm workspaces at the root (`designer/core`, `designer/app`). The core is TypeScript limited to erasable syntax (`erasableSyntaxOnly`), so Node 24, already required by this repository, imports it directly: the contract test in `tests/` runs `renderSheet` against the existing scripts with `node --test`, with no build step. The app has its own Vite build and deploys separately.
-

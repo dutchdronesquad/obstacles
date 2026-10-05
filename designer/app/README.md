@@ -1,6 +1,6 @@
 # Artwork designer app
 
-Local React + TypeScript app built with Vite, Fabric and [`designer/core`](../core/README.md). It uses the repository's shared template definitions and SVG sheets for the standard gate and corner flag.
+Browser app at [designer.trackdraw.app](https://designer.trackdraw.app), built with React, TypeScript, Vite, Fabric and [`designer/core`](../core/README.md). It uses the repository's shared template definitions and SVG sheets for the standard gate and corner flag. You can also run it locally.
 
 From the repository root, with Node.js 24:
 
@@ -37,4 +37,6 @@ Use the **2D / 3D** switch above the canvas to move between the editable sheet a
 
 The browser and CI share panel mappings, angles and camera framing. Browser canvas rasterization can differ slightly from CI's librsvg and lossless WebP output. The PR's CI preview comment is authoritative. If WebGL is unavailable or the renderer fails, the workspace returns to 2D with an explanation; the editor, undo and SVG download remain available.
 
-Hosting and the prefilled submission flow are tracked in [#35](https://github.com/dutchdronesquad/track-assets/issues/35).
+**Submit artwork** opens a dialog for your organization, optional short name and usage choice. It downloads the current SVG and opens the GitHub submission form with those values filled in. Attach the file under Template sheets and confirm rights there; nothing is submitted automatically. Sheets above the bot's 5 MB submission limit must be simplified first. The permission checkbox always requires your confirmation on GitHub.
+
+Cloudflare Workers serves the static `dist/` site using [`wrangler.jsonc`](wrangler.jsonc), SPA fallback and [`public/_headers`](public/_headers). The CSP permits bundled scripts, local fonts and local artwork blob/data URLs. Inline styles are needed for the canvas and viewer; inline scripts and remote scripts are blocked. Hashed Vite assets cache for a year; HTML and the unversioned logo revalidate. The [Designer workflow](../../.github/workflows/designer.yml) deploys checked builds from `main` and uploads version previews for same-repository pull requests. Forks run the checks without deployment secrets. Environment setup and release validation are documented in [Cloudflare setup](../../docs/cloudflare-setup.md#artwork-designer).
