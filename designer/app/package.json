@@ -14,7 +14,7 @@
     "@fontsource/inter": "5.2.8",
     "@phosphor-icons/react": "2.1.10",
     "@track-assets/designer-core": "0.0.0",
-    "@trackdraw/viewer": "git+https://github.com/dutchdronesquad/track-viewer.git#a905116fe5345e6c106df65adc5018936aa86102",
+    "@trackdraw/viewer": "1.0.2",
     "fabric": "7.4.0",
     "react": "19.3.0",
     "react-dom": "19.3.0"
