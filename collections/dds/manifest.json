@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "id": "dds",
   "name": "Dutch Drone Squad",
-  "status": "example",
+  "status": "published",
   "author": "Dutch Drone Squad",
-  "attribution": "Dutch Drone Squad logo and gate artwork by Dutch Drone Squad (https://github.com/dutchdronesquad).",
+  "attribution": "Dutch Drone Squad logo and obstacle artwork by Dutch Drone Squad (https://github.com/dutchdronesquad).",
   "usage": {
-    "terms": "Artwork and the DDS logo remain the property of Dutch Drone Squad. Provided to represent DDS obstacles in TrackDraw and compatible viewers; no other use or redistribution license is granted.",
-    "portable": "not-granted"
+    "terms": "Artwork and the DDS logo remain the property of Dutch Drone Squad. Provided to represent DDS obstacles in TrackDraw and compatible viewers, including portable and offline track exports; no other use or redistribution license is granted.",
+    "portable": "allowed"
   }
 }
