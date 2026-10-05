@@ -19,8 +19,13 @@ Let any racing organization design artwork for a supported obstacle in the brows
 
 ## Hosting
 
-- **Static site on GitHub Pages** from this repository, deployed by a workflow with `actions/deploy-pages` on pushes to `main` that touch the designer.
-- **Custom subdomain:** `designer.trackdraw.app`. A CNAME to `dutchdronesquad.github.io` in Cloudflare, DNS only (not proxied), so GitHub can issue the TLS certificate. Verify the domain for the organization under GitHub's *Pages → Verified domains* to prevent takeover.
+The designer is a static site on **Cloudflare Workers with static assets**, in the same account and zone as `assets.trackdraw.app` and TrackDraw.
+
+- **Configuration:** `designer/app/wrangler.jsonc` defines a Worker (for example `trackdraw-designer`) with `assets.directory` pointing at the Vite build and `not_found_handling: "single-page-application"`. A route `designer.trackdraw.app` with `custom_domain: true` makes Cloudflare create the proxied DNS record and the certificate automatically. No CNAME or DNS-only exception is needed, unlike GitHub Pages: there, publishing through Actions ignores a `CNAME` file, the record has to bypass Cloudflare's proxy so GitHub can issue a certificate, and `.app` is HSTS-preloaded, so the site stays unreachable until that certificate exists.
+- **Deployment:** a workflow with the same split as publishing assets. A job without secrets builds the app and runs the tests, and a `production` job runs `wrangler deploy` on pushes to `main` that touch the designer.
+- **Previews:** for pull requests from branches in this repository, `wrangler versions upload` gives a preview URL that the PR can link. Pull requests from forks get no secrets and therefore no preview deployment; their sheets are still checked by CI.
+- **Token:** the existing `CLOUDFLARE_API_TOKEN` only has *Workers R2 Storage: Edit*. Deploying needs *Workers Scripts: Edit*, plus *Workers Routes* or *DNS: Edit* on the `trackdraw.app` zone for the custom domain. Prefer a separate token for the designer in its own environment.
+- **Headers:** a `_headers` file sets a strict Content Security Policy (no remote scripts; images from `blob:` and `data:` for uploaded logos) and long-lived caching for hashed build files.
 - Everything runs in the browser: no uploads, no backend, no tracking.
 
 ## Architecture
@@ -92,11 +97,11 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 2. Core: design model, placement, `renderSheet`, validation, contract test.
 3. App: upload, colours, placement controls, 2D preview, download.
 4. 3D preview with the viewer and in-browser rasterization.
-5. Pages deployment, subdomain, submit link, docs (CONTRIBUTING and the template guide point to the designer).
+5. Cloudflare deployment, custom domain, PR previews, submit link, docs (CONTRIBUTING and the template guide point to the designer).
 
 ## Decisions
 
-- **Subdomain:** `designer.trackdraw.app`.
+- **Subdomain and hosting:** `designer.trackdraw.app` on Cloudflare Workers with static assets, not GitHub Pages; see Hosting.
 - **UI framework:** React.
 - **SVG logos with live text:** rasterized automatically, with a note that paths are sharper.
 - **Issue form upload field:** "Template sheets" becomes GitHub's dedicated `upload` field with `accept: ".svg"` and `required: true`, so the form itself refuses other files. The submission parser already accepts both `user-attachments/assets` and `user-attachments/files` links; the switch lands with milestone 5 and is confirmed with one real test submission.
