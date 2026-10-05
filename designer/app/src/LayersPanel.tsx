@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Klaas Schoute
+import { Button } from "./components/ui/button";
+import { IconButton } from "./components/IconButton";
 import { useMemo } from "react";
 import {
   Eye,
@@ -58,7 +60,8 @@ export function LayersPanel({
                   editor?.setLayer(layer.id, "visible", !layer.visible)
                 }
               />
-              <button
+              <Button
+                variant="ghost"
                 className="layer-name"
                 aria-pressed={layer.selected}
                 onClick={(event) => {
@@ -75,7 +78,7 @@ export function LayersPanel({
                   />
                 )}
                 <span>{layer.name}</span>
-              </button>
+              </Button>
               <LayerControl
                 icon={layer.locked ? Lock : LockOpen}
                 label={`${layer.locked ? "Unlock" : "Lock"} ${layer.name}`}
@@ -86,6 +89,7 @@ export function LayersPanel({
               />
               <LayerMenu
                 name={layer.name}
+                onTriggerRemoved={() => editor?.focus()}
                 disabled={busy || layer.locked || !layer.visible}
                 actions={[
                   {
@@ -156,14 +160,13 @@ function LayerControl({
   disabled?: boolean;
 }) {
   return (
-    <button
+    <IconButton
       className="icon-button"
-      aria-label={label}
-      title={label}
+      label={label}
       onClick={onClick}
       disabled={disabled}
     >
       <IconComponent size={15} aria-hidden />
-    </button>
+    </IconButton>
   );
 }

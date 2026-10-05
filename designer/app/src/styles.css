@@ -1,9 +1,45 @@
-/* SPDX-License-Identifier: MIT */
-/* Copyright (c) 2026 Klaas Schoute */
+@import "tailwindcss";
+@import "tw-animate-css";
 @import "@fontsource/inter/latin-400.css";
 @import "@fontsource/inter/latin-500.css";
 @import "@fontsource/inter/latin-600.css";
 @import "@fontsource/inter/latin-700.css";
+@custom-variant dark (&:where(.dark, .dark *));
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--secondary);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover: var(--background);
+  --color-popover-foreground: var(--foreground);
+  --color-destructive: #b64431;
+  --color-border: var(--border);
+  --color-input: #dce3e9;
+  --color-ring: var(--primary);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+}
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #253647;
+    --primary: #138cce;
+    --primary-foreground: #ffffff;
+    --secondary: #f3f6f8;
+    --muted-foreground: #647789;
+    --accent: #eaf5fc;
+    --accent-foreground: #1b6f9e;
+  }
+}
+/* SPDX-License-Identifier: MIT */
+/* Copyright (c) 2026 Klaas Schoute */
 :root {
   font-family: Inter, Arial, sans-serif;
   color: #253647;
@@ -23,38 +59,13 @@ body {
 button,
 input,
 select {
-  font: inherit;
-  color: inherit;
+  font-family: inherit;
 }
 button {
   cursor: pointer;
 }
 button:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-button {
-  border: 0;
-  background: transparent;
-}
-button,
-input,
-select {
-  border-radius: 6px;
-}
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--blue);
-  outline-offset: 3px;
-}
-input,
-select {
-  background: #fff;
-  border: 1px solid #dce3e9;
-  min-width: 0;
-  padding: 8px 10px;
+  cursor: not-allowed;
 }
 input[type="checkbox"] {
   accent-color: var(--blue);
@@ -63,7 +74,6 @@ input[type="checkbox"] {
   margin: 0;
 }
 input[type="number"] {
-  width: 100%;
   font-variant-numeric: tabular-nums;
 }
 h1,
@@ -152,29 +162,8 @@ p {
   min-width: 0;
 }
 .select-trigger {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
   height: 34px;
-  padding: 0 9px;
   font-size: 12px;
-  color: #35485b;
-  border: 1px solid #dce3e9;
-  background: #fff;
-  font-weight: 500;
-  text-align: left;
-  white-space: nowrap;
-}
-.select-trigger:hover:not(:disabled),
-.select-trigger[aria-expanded="true"] {
-  background: #f0f7fb;
-  border-color: #bddbef;
-}
-.select-trigger > span {
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .template-type-icon {
   width: 23px;
@@ -194,55 +183,6 @@ p {
   margin: 0 7px;
   background: var(--border);
 }
-.select-caret {
-  color: #718293;
-  flex-shrink: 0;
-  transition: transform 0.15s;
-}
-.select-trigger[aria-expanded="true"] .select-caret {
-  transform: rotate(180deg);
-}
-.select-menu {
-  position: fixed;
-  inset: auto;
-  margin: 0;
-  padding: 7px;
-  max-width: calc(100vw - 24px);
-  max-height: min(320px, calc(100dvh - 24px));
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  border: 1px solid #dce5ec;
-  border-radius: 10px;
-  background: white;
-  color: #253647;
-  box-shadow: 0 8px 28px #243d5426;
-}
-.select-menu-heading {
-  padding: 9px 10px 11px;
-  font-size: 10px;
-  font-weight: 600;
-  color: #667a8b;
-}
-.select-option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 8px 9px;
-  border-radius: 5px;
-  text-align: left;
-}
-.select-option:hover,
-.select-option:focus-visible {
-  background: #f1f6fa;
-}
-.select-option.selected {
-  background: #eaf5fc;
-  color: #187bab;
-}
-.select-option:focus-visible {
-  outline-offset: -2px;
-}
 .select-option-icon {
   width: 36px;
   height: 38px;
@@ -253,7 +193,7 @@ p {
   border-radius: 6px;
   flex-shrink: 0;
 }
-.select-option.selected .select-option-icon {
+.select-option[data-state="checked"] .select-option-icon {
   background: #dceefa;
   color: #168cce;
 }
@@ -288,25 +228,8 @@ p {
   align-items: center;
   gap: 8px;
 }
-.icon-button {
-  width: 32px;
-  height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #647789;
-  transition: background 0.15s;
-}
-.icon-button:hover:not(:disabled) {
-  background: #edf4f8;
-  color: #1b6f9e;
-}
 .icon-button.with-text {
-  width: auto;
   gap: 7px;
-  padding: 0 10px;
-  white-space: nowrap;
   color: #34495e;
 }
 .divider {
@@ -314,21 +237,6 @@ p {
   height: 22px;
   background: var(--border);
   margin: 0 4px;
-}
-.primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--blue);
-  color: #fff;
-  padding: 11px 16px;
-  font-weight: 600;
-  border: 1px solid #087bb8;
-  box-shadow: 0 1px 2px #1232;
-}
-.primary:hover:not(:disabled) {
-  background: #087dbb;
 }
 .download {
   height: 32px;
@@ -355,6 +263,9 @@ p {
   overflow-y: auto;
 }
 .tool {
+  height: auto;
+  white-space: normal;
+  padding: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -773,6 +684,8 @@ p {
   background: #e2f1fd;
 }
 .layer.hidden-layer .layer-name {
+  justify-content: flex-start;
+  white-space: normal;
   opacity: 0.5;
 }
 .object-icon {
@@ -841,28 +754,11 @@ p {
   font-size: 10px;
   margin-top: 8px;
 }
+.layer-menu-item {
+  min-height: 34px;
+}
 .layer-menu {
   width: 204px;
-}
-.layer-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 34px;
-  padding: 8px 9px;
-  font-size: 12px;
-  text-align: left;
-}
-.layer-menu-item:hover,
-.layer-menu-item:focus-visible {
-  background: #f1f6fa;
-}
-.layer-menu-item:focus-visible {
-  outline-offset: -2px;
-}
-.layer-menu-item.destructive {
-  color: #b64431;
 }
 .local-note {
   flex-shrink: 0;
@@ -939,37 +835,17 @@ p {
 .status-bar > .icon-button {
   margin-left: auto;
 }
-.dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  background: #1c344b66;
-  display: grid;
-  place-items: center;
-  z-index: 20;
-  padding: 20px;
-}
 .shortcut-dialog {
-  border: 0;
-  margin: auto;
-  background: #fff;
-  padding: 26px;
   width: 450px;
-  max-width: 100%;
+  max-width: calc(100vw - 32px);
   max-height: 90dvh;
-  overflow: auto;
-  border-radius: 12px;
-  box-shadow: 0 15px 70px #0003;
+  overflow-y: auto;
+  padding: 26px;
 }
-.shortcut-dialog::backdrop {
-  background: #1c344b66;
-}
-.shortcut-dialog > div {
+.dialog-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-.shortcut-dialog h2 {
-  font-size: 17px;
 }
 .shortcut-dialog dl {
   margin: 18px 0;

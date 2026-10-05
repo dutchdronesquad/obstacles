@@ -181,9 +181,8 @@ test("desktop and mobile submit a checked download and open the prefilled GitHub
       .fill("Racing & 東京");
     await dialog.getByLabel("Short name (optional)").fill("racing-tokyo");
     const usage = "In TrackDraw, including offline track exports";
-    await dialog
-      .getByLabel("Usage", { exact: true })
-      .selectOption({ label: usage });
+    await dialog.getByRole("combobox", { name: "Usage", exact: true }).click();
+    await page.getByRole("option", { name: usage, exact: true }).click();
     const popupPending = page.waitForEvent("popup");
     const downloadPending = page.waitForEvent("download");
     await submit.click();
@@ -533,13 +532,20 @@ test("template picker supports keyboard selection, dismissal and undo without cl
   const page = await openPage(t);
   await draw(page);
   const original = (await download(page)).design;
-  const picker = page.getByRole("combobox", { name: "Obstacle", exact: true });
+  const picker = page.getByRole("combobox", {
+    name: "Obstacle",
+    exact: true,
+    includeHidden: true,
+  });
   await picker.press("ArrowDown");
   assert.equal(await picker.getAttribute("aria-expanded"), "true");
   await page
     .getByRole("option", { name: "Standard gate", exact: true })
     .press("Escape");
   assert.equal(await picker.getAttribute("aria-expanded"), "false");
+  await page.waitForFunction(
+    () => document.activeElement?.getAttribute("aria-label") === "Obstacle",
+  );
   assert.equal(
     await picker.evaluate((element) => element === document.activeElement),
     true,
@@ -550,6 +556,7 @@ test("template picker supports keyboard selection, dismissal and undo without cl
     .click();
   assert.deepEqual((await download(page)).design, original);
   await picker.press("ArrowUp");
+  await page.keyboard.press("End");
   await page
     .getByRole("option", { name: "Corner flag", exact: true })
     .press("Enter");
@@ -561,8 +568,25 @@ test("template picker supports keyboard selection, dismissal and undo without cl
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await page.locator(".status").filter({ hasText: "Change undone" }).waitFor();
   assert.deepEqual((await download(page)).design, original);
+  const canvasBounds = await page
+    .getByRole("application", { name: "Artwork canvas" })
+    .boundingBox();
   await picker.click();
-  await page.getByRole("button", { name: "Top panel", exact: true }).click();
+  await page.waitForFunction(
+    () => document.activeElement?.getAttribute("role") === "option",
+  );
+  await page.waitForFunction(() =>
+    [...document.querySelector('[role="listbox"]').getAnimations()].every(
+      (animation) => animation.playState === "finished",
+    ),
+  );
+  await page.mouse.click(
+    canvasBounds.x + canvasBounds.width / 2,
+    canvasBounds.y + canvasBounds.height / 2,
+  );
+  await page
+    .getByRole("listbox", { name: "Obstacle type", exact: true })
+    .waitFor({ state: "detached" });
   assert.equal(await picker.getAttribute("aria-expanded"), "false");
 });
 
@@ -580,6 +604,7 @@ test("accent dropdown preserves keyboard focus, undo and template-specific choic
     const accent = page.getByRole("combobox", {
       name: "Accent style",
       exact: true,
+      includeHidden: true,
     });
     await accent.press("ArrowDown");
     const frame = page.getByRole("option", {
@@ -592,12 +617,23 @@ test("accent dropdown preserves keyboard focus, undo and template-specific choic
     );
     await frame.press("Escape");
     assert.equal(await accent.getAttribute("aria-expanded"), "false");
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute("aria-label") === "Accent style",
+    );
     assert.equal(
       await accent.evaluate((element) => element === document.activeElement),
       true,
     );
     await accent.press("ArrowDown");
     await frame.press("Tab");
+    assert.equal(await accent.getAttribute("aria-expanded"), "true");
+    await frame.press("Escape");
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute("aria-label") === "Accent style",
+    );
+    await accent.press("Tab");
     await page
       .getByRole("listbox", { name: "Accent style", exact: true })
       .waitFor({ state: "hidden" });
@@ -611,7 +647,8 @@ test("accent dropdown preserves keyboard focus, undo and template-specific choic
         .evaluate((element) => element === document.activeElement),
       true,
     );
-    await accent.press("Home");
+    await accent.press("ArrowDown");
+    await page.keyboard.press("Home");
     await page
       .getByRole("option", { name: "None", exact: true })
       .press("Enter");
@@ -626,7 +663,13 @@ test("accent dropdown preserves keyboard focus, undo and template-specific choic
       await page
         .getByRole("button", { name: "Close properties", exact: true })
         .click();
-    await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
+    await page
+      .getByRole("combobox", {
+        name: "Obstacle",
+        exact: true,
+        includeHidden: true,
+      })
+      .click();
     await page
       .getByRole("option", { name: "Corner flag", exact: true })
       .click();
@@ -654,6 +697,7 @@ test("accent dropdown preserves keyboard focus, undo and template-specific choic
     const menu = page.getByRole("listbox", {
       name: "Accent style",
       exact: true,
+      includeHidden: true,
     });
     const bounds = await menu.boundingBox();
     assert.ok(
@@ -792,6 +836,17 @@ test("layer previews, multi-selection and per-layer actions preserve artwork", a
     const result = await download(page);
     assert.deepEqual(result.design, original);
     await checkDownload(result);
+    await options.click();
+    await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute("aria-label") === "Artwork canvas",
+    );
+    assert.equal(await layers.getByRole("listitem").count(), 2);
+    assert.deepEqual(
+      (await download(page)).design.artwork,
+      original.artwork.filter((item) => item.id !== leftId),
+    );
   }
 });
 
@@ -1069,4 +1124,126 @@ test("without WebGL the 2D editor still draws, undoes and downloads on mobile", 
     ),
     false,
   );
+});
+
+test("shared controls restore focus and keep typing and menus separate from canvas shortcuts", async (t) => {
+  for (const viewport of [
+    { width: 1440, height: 1024 },
+    { width: 390, height: 844 },
+  ]) {
+    const page = await openPage(t, viewport);
+    await draw(page);
+    const header = page.locator(".header-actions");
+    const heights = await Promise.all(
+      ["Open sheet", "Download SVG", "Submit artwork"].map(
+        async (name) =>
+          (
+            await header
+              .getByRole("button", { name, exact: true })
+              .boundingBox()
+          ).height,
+      ),
+    );
+    assert.deepEqual(heights, [32, 32, 32]);
+    const rectangle = page.getByRole("button", {
+      name: "Rectangle (R)",
+      exact: true,
+      includeHidden: true,
+    });
+    const original = (await download(page)).design;
+    await rectangle.click();
+    const help = page.getByRole("button", {
+      name: "Keyboard shortcuts",
+      exact: true,
+    });
+    await help.click();
+    const dialog = page.getByRole("dialog", {
+      name: "Keyboard shortcuts",
+      exact: true,
+    });
+    await dialog
+      .getByRole("button", { name: "Back to designing", exact: true })
+      .press("v");
+    assert.equal(await rectangle.getAttribute("aria-pressed"), "true");
+    await page.keyboard.press("Control+z");
+    await page.keyboard.press("Escape");
+    await dialog.waitFor({ state: "detached" });
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute("aria-label") ===
+        "Keyboard shortcuts",
+    );
+    assert.deepEqual((await download(page)).design, original);
+
+    const submit = page.getByRole("button", {
+      name: "Submit artwork",
+      exact: true,
+    });
+    await submit.click();
+    const submission = page.getByRole("dialog", {
+      name: "Submit obstacle artwork",
+      exact: true,
+    });
+    const organization = submission.getByLabel("Organization", { exact: true });
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute("autocomplete") === "organization",
+    );
+    await organization.pressSequentially("vector racing");
+    assert.equal(await rectangle.getAttribute("aria-pressed"), "true");
+    await submission
+      .getByRole("button", { name: "Close submission", exact: true })
+      .press("Tab");
+    assert.equal(
+      await organization.evaluate(
+        (element) => element === document.activeElement,
+      ),
+      true,
+    );
+    await organization.press("Shift+Tab");
+    assert.equal(
+      await submission
+        .getByRole("button", { name: "Close submission", exact: true })
+        .evaluate((element) => element === document.activeElement),
+      true,
+    );
+    await page.keyboard.press("Escape");
+    await submission.waitFor({ state: "detached" });
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.getAttribute("aria-label") === "Submit artwork",
+    );
+
+    const picker = page.getByRole("combobox", {
+      name: "Obstacle",
+      exact: true,
+      includeHidden: true,
+    });
+    await picker.press("ArrowDown");
+    const gate = page.getByRole("option", {
+      name: "Standard gate",
+      exact: true,
+    });
+    await gate.press("v");
+    await gate.press("Control+z");
+    await gate.press("Escape");
+    await page.waitForFunction(
+      () => document.activeElement?.getAttribute("aria-label") === "Obstacle",
+    );
+    assert.equal(await rectangle.getAttribute("aria-pressed"), "true");
+    assert.deepEqual((await download(page)).design, original);
+    await help.press("v");
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Select (V)", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.equal(
+      await page
+        .getByRole("application", { name: "Artwork canvas" })
+        .evaluate((element) => element === document.activeElement),
+      true,
+    );
+  }
 });

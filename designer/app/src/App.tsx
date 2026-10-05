@@ -56,6 +56,21 @@ import {
   validTextureId,
 } from "./artwork.ts";
 import { downloadSheet, rasterizePanels, rasterizeSvg } from "./browser.ts";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "./components/ui/tooltip";
+import { IconButton } from "./components/IconButton";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from "./components/ui/dialog";
 import { DropdownSelect } from "./DropdownSelect.tsx";
 import { LivePreview } from "./LivePreview.tsx";
 import { LayersPanel } from "./LayersPanel.tsx";
@@ -114,7 +129,8 @@ export function App() {
   const docRef = useRef(doc),
     history = useRef(new History(doc)),
     engine = useRef<CanvasEditor>(undefined);
-  const shortcutDialog = useRef<HTMLDialogElement>(null);
+  const helpTrigger = useRef<HTMLButtonElement>(null);
+  const submissionTrigger = useRef<HTMLButtonElement>(null);
   const host = useRef<HTMLDivElement>(null),
     logoInput = useRef<HTMLInputElement>(null),
     sheetInput = useRef<HTMLInputElement>(null);
@@ -194,13 +210,6 @@ export function App() {
     };
   }, []);
   useEffect(() => {
-    if (help) shortcutDialog.current?.showModal();
-  }, [help]);
-  const closeHelp = () => {
-    shortcutDialog.current?.close();
-    setHelp(false);
-  };
-  useEffect(() => {
     setNodeIndex(0);
   }, [selected?.id]);
   useEffect(() => {
@@ -255,10 +264,12 @@ export function App() {
     const onKey = (event: KeyboardEvent) => {
       if (
         event.target instanceof HTMLElement &&
-        event.target.closest("dialog,input,textarea,select,[contenteditable=true]")
+        event.target.closest(
+          'input,textarea,select,[contenteditable=true],[role="dialog"],[role="menu"],[role="listbox"],[role="combobox"]',
+        )
       )
         return;
-      if (busy || help) return;
+      if (event.defaultPrevented || busy || help || submissionOpen) return;
       const key = event.key.toLowerCase();
       if (event.metaKey || event.ctrlKey) {
         if (key === "z") {
@@ -394,7 +405,7 @@ export function App() {
           <img src="/assets/trackdraw-logo.svg" alt="TrackDraw" />
         </a>
         <div className="document-title">
-          <input
+          <Input
             aria-label="Artwork name"
             placeholder="Untitled artwork"
             maxLength={80}
@@ -426,8 +437,8 @@ export function App() {
             disabled={busy}
             text
           />
-          <button
-            className="primary download"
+          <Button
+            className="download"
             aria-label="Download SVG"
             disabled={busy || !validTextureId(doc.textureId) || !rendered.sheet}
             onClick={() => {
@@ -439,11 +450,17 @@ export function App() {
           >
             <DownloadSimple size={18} />
             <span>Download SVG</span>
-          </button>
+          </Button>
           <Action
+            buttonRef={submissionTrigger}
             icon={PaperPlaneTilt}
             label="Submit artwork"
-            disabled={busy || !validTextureId(doc.textureId) || !rendered.sheet || view.drawing}
+            disabled={
+              busy ||
+              !validTextureId(doc.textureId) ||
+              !rendered.sheet ||
+              view.drawing
+            }
             onClick={() => setSubmissionOpen(true)}
             text
           />
@@ -470,41 +487,49 @@ export function App() {
       <div className="editor-body">
         <nav className="tool-rail" aria-label="Drawing tools">
           {tools.map((tool) => (
-            <button
-              key={tool.id}
-              disabled={busy || previewOpen}
-              className={view.tool === tool.id ? "tool active" : "tool"}
-              aria-pressed={view.tool === tool.id}
-              aria-label={`${tool.name} (${tool.key})`}
-              title={`${tool.name} (${tool.key})`}
-              onClick={() => {
-                engine.current?.setTool(tool.id);
-                engine.current?.focus();
-              }}
-            >
-              <tool.icon
-                size={23}
-                weight={view.tool === tool.id ? "fill" : "regular"}
-              />
-              <span>{tool.name}</span>
-            </button>
+            <Tooltip key={tool.id}>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="toolbar"
+                  disabled={busy || previewOpen}
+                  className={view.tool === tool.id ? "tool active" : "tool"}
+                  aria-pressed={view.tool === tool.id}
+                  aria-label={`${tool.name} (${tool.key})`}
+                  onClick={() => {
+                    engine.current?.setTool(tool.id);
+                    engine.current?.focus();
+                  }}
+                >
+                  <tool.icon
+                    size={23}
+                    weight={view.tool === tool.id ? "fill" : "regular"}
+                  />
+                  <span>{tool.name}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={8}>
+                {tool.name} ({tool.key})
+              </TooltipContent>
+            </Tooltip>
           ))}
           <div className="rail-divider" />
-          <button
+          <Button
+            variant="toolbar"
             className="tool"
             disabled={busy}
             onClick={() => logoInput.current?.click()}
           >
             <Image size={24} />
             <span>Import logo</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="toolbar"
             className="tool mobile-properties"
             onClick={() => setMobileProperties(true)}
           >
             <SlidersHorizontal size={23} />
             <span>Properties</span>
-          </button>
+          </Button>
         </nav>
         <section className="canvas-area" aria-label="Artwork workspace">
           <div className="canvas-toolbar">
@@ -524,7 +549,8 @@ export function App() {
                       panelLabel(id),
                     ]),
                   ].map(([id, label]) => (
-                    <button
+                    <Button
+                      variant="toolbar"
                       key={id}
                       className={
                         view.panel === id ? "panel-tab active" : "panel-tab"
@@ -533,7 +559,7 @@ export function App() {
                       onClick={() => engine.current?.setPanel(id)}
                     >
                       {label}
-                    </button>
+                    </Button>
                   ))}
                 </>
               )}
@@ -543,14 +569,16 @@ export function App() {
               role="group"
               aria-label="Workspace view"
             >
-              <button
+              <Button
+                variant="toolbar"
                 aria-label="2D view"
                 aria-pressed={!previewOpen}
                 onClick={() => setPreviewOpen(false)}
               >
                 2D
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="toolbar"
                 aria-label="3D view"
                 aria-pressed={previewOpen}
                 disabled={busy || view.drawing}
@@ -565,7 +593,7 @@ export function App() {
                 }}
               >
                 3D
-              </button>
+              </Button>
             </div>
           </div>
           {previewUnavailable && (
@@ -584,22 +612,29 @@ export function App() {
                 <div className="empty-canvas">
                   <p>Make it yours.</p>
                   <span>Import your logo or draw on the sheet.</span>
-                  <button
+                  <Button
+                    variant="toolbar"
                     onClick={() => logoInput.current?.click()}
                     disabled={busy}
                   >
                     <Plus size={16} /> Add your logo
-                  </button>
+                  </Button>
                 </div>
               )}
               {view.drawing && view.tool === "pen" && (
                 <div className="drawing-actions">
-                  <button onClick={() => engine.current?.finishPath()}>
+                  <Button
+                    variant="toolbar"
+                    onClick={() => engine.current?.finishPath()}
+                  >
                     Finish path
-                  </button>
-                  <button onClick={() => engine.current?.finishPath(true)}>
+                  </Button>
+                  <Button
+                    variant="toolbar"
+                    onClick={() => engine.current?.finishPath(true)}
+                  >
                     Close path
-                  </button>
+                  </Button>
                   <Action
                     icon={X}
                     label="Cancel path"
@@ -633,7 +668,8 @@ export function App() {
           </div>
         </section>
         {mobileProperties && (
-          <button
+          <Button
+            variant="toolbar"
             className="drawer-backdrop"
             aria-label="Dismiss properties"
             onClick={() => setMobileProperties(false)}
@@ -665,7 +701,7 @@ export function App() {
                 <div className="selected-object">
                   <ObjectIcon kind={selected.kind} />
                   <div>
-                    <input
+                    <Input
                       aria-label="Object name"
                       readOnly={selected.count > 1}
                       maxLength={80}
@@ -701,7 +737,8 @@ export function App() {
                       value={selected.angle}
                       onChange={(value) => update("angle", value)}
                     />
-                    <button
+                    <Button
+                      variant="toolbar"
                       className={`link-dimensions ${aspect ? "active" : ""}`}
                       aria-label="Lock aspect ratio"
                       aria-pressed={aspect}
@@ -709,7 +746,7 @@ export function App() {
                     >
                       {aspect ? <Link size={18} /> : <LinkBreak size={18} />}
                       <span>{aspect ? "Linked" : "Free"}</span>
-                    </button>
+                    </Button>
                   </div>
                 </PropertySection>
                 <PropertySection title="Appearance">
@@ -790,20 +827,22 @@ export function App() {
                   />
                 </div>
                 {selected.kind === "group" && (
-                  <button
+                  <Button
+                    variant="toolbar"
                     className="subtle-button"
                     onClick={() => engine.current?.ungroup()}
                   >
                     Ungroup to edit individual shapes
-                  </button>
+                  </Button>
                 )}
                 {["rect", "ellipse"].includes(selected.kind) && (
-                  <button
+                  <Button
+                    variant="toolbar"
                     className="subtle-button"
                     onClick={() => engine.current?.convertToPath()}
                   >
                     Convert to editable path
-                  </button>
+                  </Button>
                 )}
                 {selected.nodes && (
                   <PropertySection title="Path points">
@@ -835,29 +874,33 @@ export function App() {
                       ))}
                     </div>
                     <div className="point-actions">
-                      <button
+                      <Button
+                        variant="toolbar"
                         disabled={nodeIndex === 0 || pathNode?.[0] === "M"}
                         onClick={() => engine.current?.insertNode(nodeIndex)}
                       >
                         Add point
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="toolbar"
                         disabled={nodeIndex === 0 || pathNode?.[0] === "Z"}
                         onClick={() =>
                           engine.current?.curveNode(nodeIndex, true)
                         }
                       >
                         Curve
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="toolbar"
                         disabled={nodeIndex === 0 || pathNode?.[0] === "Z"}
                         onClick={() =>
                           engine.current?.curveNode(nodeIndex, false)
                         }
                       >
                         Corner
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="toolbar"
                         disabled={nodeIndex === 0 || selected.nodes.length < 3}
                         onClick={() => {
                           engine.current?.removeNode(nodeIndex);
@@ -865,7 +908,7 @@ export function App() {
                         }}
                       >
                         Remove point
-                      </button>
+                      </Button>
                     </div>
                     <p className="hint">
                       Use Edit points (N) to drag anchors and curve handles on
@@ -946,18 +989,19 @@ export function App() {
                     Logos follow each panel’s reading direction. Every copy can
                     be moved and edited independently.
                   </p>
-                  <button
+                  <Button
+                    variant="toolbar"
                     className="subtle-button"
                     disabled={busy}
                     onClick={() => logoInput.current?.click()}
                   >
                     <Image size={17} /> Import SVG, PNG or JPEG
-                  </button>
+                  </Button>
                 </PropertySection>
                 <PropertySection title="Save your artwork">
                   <label className="field mobile-sheet-name">
                     Sheet name
-                    <input
+                    <Input
                       maxLength={80}
                       value={doc.design.name ?? ""}
                       onChange={(event) =>
@@ -967,7 +1011,7 @@ export function App() {
                   </label>
                   <label className="field">
                     Texture ID
-                    <input
+                    <Input
                       value={doc.textureId}
                       aria-invalid={!validTextureId(doc.textureId)}
                       spellCheck={false}
@@ -1068,6 +1112,7 @@ export function App() {
               : notice || hints[view.tool]}
         </p>
         <Action
+          buttonRef={helpTrigger}
           icon={Question}
           label="Keyboard shortcuts"
           onClick={() => setHelp(true)}
@@ -1081,19 +1126,37 @@ export function App() {
         objects.
       </p>
       {submissionOpen && (
-        <SubmissionDialog sheet={rendered.sheet} textureId={doc.textureId} onClose={() => setSubmissionOpen(false)} />
+        <SubmissionDialog
+          sheet={rendered.sheet}
+          textureId={doc.textureId}
+          onClose={() => setSubmissionOpen(false)}
+          triggerRef={submissionTrigger}
+        />
       )}
-      {help && (
-        <dialog
-          ref={shortcutDialog}
+      <Dialog open={help} onOpenChange={setHelp}>
+        <DialogContent
           className="shortcut-dialog"
-          onCancel={() => setHelp(false)}
-          aria-labelledby="shortcuts-title"
+          showCloseButton={false}
+          onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            helpTrigger.current?.focus();
+          }}
         >
-          <div>
-            <h2 id="shortcuts-title">Keyboard shortcuts</h2>
-            <Action icon={X} label="Close shortcuts" onClick={closeHelp} />
+          <div className="dialog-heading">
+            <DialogTitle>Keyboard shortcuts</DialogTitle>
+            <DialogClose asChild>
+              <Button
+                variant="toolbar"
+                size="icon"
+                aria-label="Close shortcuts"
+              >
+                <X size={18} aria-hidden />
+              </Button>
+            </DialogClose>
           </div>
+          <DialogDescription className="sr-only">
+            Drawing tools and artwork keyboard shortcuts.
+          </DialogDescription>
           <dl>
             {tools.map((tool) => (
               <div key={tool.id}>
@@ -1124,11 +1187,11 @@ export function App() {
               <dd>Arrows, Enter, ⌘ / Ctrl + Enter</dd>
             </div>
           </dl>
-          <button className="primary" autoFocus onClick={closeHelp}>
-            Back to designing
-          </button>
-        </dialog>
-      )}
+          <DialogClose asChild>
+            <Button autoFocus>Back to designing</Button>
+          </DialogClose>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1139,6 +1202,7 @@ function Action({
   disabled,
   text,
   className = "",
+  buttonRef,
 }: {
   icon: Icon;
   label: string;
@@ -1146,18 +1210,19 @@ function Action({
   disabled?: boolean;
   text?: boolean;
   className?: string;
+  buttonRef?: React.RefObject<HTMLButtonElement | null>;
 }) {
   return (
-    <button
-      className={`icon-button ${text ? "with-text" : ""} ${className}`}
-      aria-label={label}
-      title={label}
+    <IconButton
+      ref={buttonRef}
+      label={label}
+      className={`icon-button ${text ? "with-text w-auto px-2.5" : ""} ${className}`}
       disabled={disabled}
       onClick={onClick}
     >
-      <IconComponent size={18} />
+      <IconComponent size={18} aria-hidden />
       {text && <span>{label}</span>}
-    </button>
+    </IconButton>
   );
 }
 function ObjectIcon({ kind }: { kind: string }) {
@@ -1203,7 +1268,7 @@ function NumberField({
   return (
     <label className="field">
       {label}
-      <input
+      <Input
         type="number"
         step="any"
         value={value}
@@ -1252,7 +1317,8 @@ function PaintField({
               : value.toUpperCase()}
         </span>
         {optional && (
-          <button
+          <Button
+            variant="toolbar"
             type="button"
             aria-label={`No ${label.toLowerCase()}`}
             onClick={(event) => {
@@ -1261,7 +1327,7 @@ function PaintField({
             }}
           >
             <X size={12} />
-          </button>
+          </Button>
         )}
       </span>
     </label>
