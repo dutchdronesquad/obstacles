@@ -8,6 +8,7 @@ concurrency:
   group: preview-cleanup-${{ github.event.pull_request.number }}
 jobs:
   cleanup:
+    name: Remove closed pull request previews
     runs-on: ubuntu-latest
     permissions:
       contents: write

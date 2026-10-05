@@ -32,28 +32,38 @@ concurrency:
 jobs:
   # No environment or secrets while building and testing artwork or application code.
   build-and-test:
+    name: Build and test designer
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.21.0
           cache: npm
-      - run: npm ci
-      - run: npm run typecheck && npm test
-      - run: npx playwright install --with-deps chromium
-      - run: npm run designer:test
-      - run: npx wrangler deploy --config designer/app/wrangler.jsonc --dry-run
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - name: Install dependencies
+        run: npm ci
+      - name: Validate types and run unit tests
+        run: npm run typecheck && npm test
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Build designer and run browser tests
+        run: npm run designer:test
+      - name: Validate deployment package
+        run: npx wrangler deploy --config designer/app/wrangler.jsonc --dry-run
+      - name: Upload checked designer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: designer-site
           path: designer/app/dist/
           if-no-files-found: error
 
   production:
+    name: Deploy designer to production
     needs: build-and-test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -62,27 +72,32 @@ jobs:
       name: designer-production
       url: https://designer.trackdraw.app
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.21.0
           cache: npm
-      - run: npm ci --ignore-scripts
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Install deployment tooling
+        run: npm ci --ignore-scripts
+      - name: Download checked designer
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: designer-site
           path: designer/app/dist/
-      - name: Deploy checked site
+      - name: Deploy checked designer
         run: npx wrangler deploy --config designer/app/wrangler.jsonc
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      - name: Verify HTTPS
+      - name: Verify production HTTPS
         run: curl --fail --retry 5 --retry-all-errors --retry-delay 10 https://designer.trackdraw.app/ --output /dev/null
 
   preview:
+    name: Deploy designer preview
     needs: build-and-test
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
@@ -91,15 +106,19 @@ jobs:
       name: designer-preview
       url: ${{ steps.upload.outputs.url }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24.21.0
           cache: npm
-      - run: npm ci --ignore-scripts
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Install deployment tooling
+        run: npm ci --ignore-scripts
+      - name: Download checked designer
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: designer-site
           path: designer/app/dist/
