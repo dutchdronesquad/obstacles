@@ -96,7 +96,7 @@ export async function captionRender(png, entry) {
   const { renderTargets } = await import('./render3d.mjs');
   const { width, height } = await sharp(png).metadata();
   const views = renderTargets[entry.template].views.map(([, label]) => label).join(' · ');
-  const note = entry.backColor ? `backColor ${entry.backColor} is not shown until TrackDraw supports it (trackdraw#886).` : '';
+  const note = entry.backColor ? `Unprinted back: ${entry.backColor}.` : '';
   const caption = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="56" font-family="sans-serif">
     <rect width="100%" height="100%" fill="#ffffff"/>
     <text x="16" y="24" font-size="16" font-weight="bold" fill="#0f172a">${esc(`${entry.id} in TrackDraw's 3D viewer, left to right: ${views}`)}</text>

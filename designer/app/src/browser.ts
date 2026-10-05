@@ -41,18 +41,25 @@ export function withoutGuides(sheet: string): string {
   return new XMLSerializer().serializeToString(document);
 }
 
-/** PNG estimates at export resolution; CI's lossless WebP sizes may differ. */
-export async function estimatePanelSizes(sheet: string, definition: TemplateDefinition): Promise<Record<string, number>> {
+/** Rasterize canonical panel regions at CI export resolution, preserving flag alpha. */
+export async function rasterizePanels(sheet: string, definition: TemplateDefinition, signal?: AbortSignal): Promise<Record<string, Blob>> {
   const image = await loadImage(new Blob([withoutGuides(sheet)], { type: 'image/svg+xml' }));
   const scale = definition.sheet?.scale ?? 1;
-  const sizes: Record<string, number> = {};
+  const panels: Record<string, Blob> = {};
   for (const [id, panel] of Object.entries(definition.panels)) {
+    signal?.throwIfAborted();
     const { element, context } = canvas(panel.width * scale, panel.height * scale);
     if (panel.color) { context.fillStyle = panel.color; context.fillRect(0, 0, element.width, element.height); }
     context.drawImage(image, panel.x, panel.y, panel.width, panel.height, 0, 0, element.width, element.height);
-    sizes[id] = (await encodePng(element)).size;
+    panels[id] = await encodePng(element);
   }
-  return sizes;
+  signal?.throwIfAborted();
+  return panels;
+}
+
+/** PNG estimates; CI's lossless WebP sizes may differ. */
+export async function estimatePanelSizes(sheet: string, definition: TemplateDefinition): Promise<Record<string, number>> {
+  return Object.fromEntries(Object.entries(await rasterizePanels(sheet, definition)).map(([id, blob]) => [id, blob.size]));
 }
 
 export function downloadSheet(sheet: string, textureId: string) {

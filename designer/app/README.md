@@ -31,6 +31,10 @@ npm run designer:test
 npm run assets:check
 ```
 
-The browser suite builds the production app and checks vector transforms, grouping, pointer and keyboard drawing, Bézier edits, undo, mobile controls, safe imports and SVG reopening. Downloaded gate and flag sheets go through the real collection checks. `npm run designer:build` writes the static site to `designer/app/dist/`; `npm run preview --workspace designer/app` serves that build locally.
+The browser suite builds the production app and checks vector transforms, grouping, pointer and keyboard drawing, Bézier edits, undo, mobile controls, safe imports, SVG reopening, live 3D updates, gate back colours and the WebGL fallback. Browser panel pixels are compared with the real CI export, including flag transparency. Downloaded gate and flag sheets go through the real collection checks. `npm run designer:build` writes the static site to `designer/app/dist/`; `npm run preview --workspace designer/app` serves that build locally.
 
-Live 3D preview is tracked in [#34](https://github.com/dutchdronesquad/track-assets/issues/34). Hosting and the prefilled submission flow are tracked in [#35](https://github.com/dutchdronesquad/track-assets/issues/35).
+Use the **2D / 3D** switch above the canvas to move between the editable sheet and a full-size preview of front, turned and back angles. Returning to 2D preserves your panel, zoom and artwork selection. Colours and layers remain editable in 3D; drawing tools become available again in 2D. Finish or cancel an in-progress drawing before switching. Drag to orbit and scroll or pinch to zoom; Reset 3D camera returns to the shared preview framing. Returning to 2D releases the viewer. Gate backs use the chosen solid colour, and flag panels retain their transparent outline. Changes are debounced and rasterized asynchronously, with stale generations cancelled. The viewer and its styles load only when 3D opens; all artwork stays in local blob URLs, with no texture requests to the network.
+
+The browser and CI share panel mappings, angles and camera framing. Browser canvas rasterization can differ slightly from CI's librsvg and lossless WebP output. The PR's CI preview comment is authoritative. If WebGL is unavailable or the renderer fails, the workspace returns to 2D with an explanation; the editor, undo and SVG download remain available.
+
+Hosting and the prefilled submission flow are tracked in [#35](https://github.com/dutchdronesquad/track-assets/issues/35).

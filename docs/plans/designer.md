@@ -1,6 +1,6 @@
 # Plan: obstacle artwork designer
 
-Status: core implemented; local app implemented in issue #33, including the requested free vector editor. Live 3D preview (#34) and hosting/submission (#35) remain planned.
+Status: core implemented; local app implemented in issue #33, including the requested free vector editor. Live 3D preview is implemented in issue #34; hosting/submission (#35) remains planned.
 
 ## Goal
 
@@ -13,7 +13,7 @@ Let any racing organization design artwork for a supported obstacle in the brows
 1. **Pick an obstacle:** standard gate (`gate-standard-v1`) or corner flag (`corner-flag-v1`).
 2. **Add a logo** (SVG or PNG) and **pick colours**: background, accent, and the gate's back colour.
 3. **Check placement.** The logo is placed on every panel automatically, rotated by convention and kept inside the safe area. The user can hide it per panel, scale it and move it.
-4. **Preview** the 2D sheet next to a live 3D view in TrackDraw's viewer: front, turned and back.
+4. **Preview** the 2D sheet or switch to a full-size live 3D view in TrackDraw's viewer: front, turned and back.
 5. **Download** the sheet (`standard-gate.svg`, `corner-flag.svg`).
 6. **Submit.** A button opens the "Submit obstacle artwork" form with the organization, short name and usage already filled in. The user drags the downloaded files into it, because GitHub cannot prefill attachments.
 
@@ -58,7 +58,7 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 - **Vite + TypeScript + React.** React matches TrackDraw and the viewer, which bundles React anyway.
 - **Free artwork:** Fabric handles canvas selection, transforms, grouping, freehand drawing and Bézier controls. Only checked geometry and embedded images enter the framework-free core; engine JSON is not persisted.
 - **2D preview:** the rendered sheet with guides visible, plus a toggle to show only what will be exported.
-- **3D preview:** `@trackdraw/viewer` with an `assetResolver` that serves panels rasterized in the browser: the sheet is drawn to a canvas per region, just as `exportSheet` does. The render design is the same as `scripts/render3d.mjs` (three angles). Browser rasterization can differ slightly from librsvg in CI; CI's preview comment remains the source of truth.
+- **3D preview:** `@trackdraw/viewer` with an `assetResolver` that serves panels rasterized in the browser: the sheet is drawn to a canvas per region, just as `exportSheet` does. The render design and camera are shared with `scripts/render3d.mjs` through `templates/render-targets.ts` (three angles). Preview textures and the unprinted gate back colour are supplied locally, and the 2D editor remains usable without WebGL. Browser rasterization can differ slightly from librsvg in CI; CI's preview comment remains the source of truth.
 - **Submit:** opens `issues/new?template=submit-collection.yml&organization=…&slug=…&usage=…` (issue forms prefill fields by `id`).
 
 ## Logos
@@ -75,7 +75,7 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 - Multiple logos and free vector artwork, background, accent and back colour.
 - Accent styles: none, line around the gate opening, band along the flag's bottom edge.
 - Automatic placement, adjustable per panel.
-- Interactive 2D canvas and editable SVG download. 3D preview and the prefilled submit link follow in #34 and #35.
+- Interactive 2D canvas, live 3D preview and editable SVG download. The prefilled submit link follows in #35.
 - Reopening a downloaded sheet via its embedded design data.
 
 **Later**
