@@ -475,6 +475,9 @@ test("accent dropdown preserves keyboard focus, undo and template-specific choic
       exact: true,
     });
     assert.equal(await frame.getAttribute("aria-selected"), "true");
+    await page.waitForFunction(
+      () => document.activeElement?.getAttribute("aria-selected") === "true",
+    );
     await frame.press("Escape");
     assert.equal(await accent.getAttribute("aria-expanded"), "false");
     assert.equal(

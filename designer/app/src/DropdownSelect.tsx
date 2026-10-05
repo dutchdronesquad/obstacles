@@ -69,7 +69,6 @@ export function DropdownSelect<T extends string | number>({
       });
     };
     place();
-    focus(openingIndex.current);
     window.addEventListener("resize", place);
     window.addEventListener("scroll", place, true);
     return () => {
@@ -127,6 +126,13 @@ export function DropdownSelect<T extends string | number>({
         popover="auto"
         style={position}
         onBeforeToggle={(event) => setOpen(event.newState === "open")}
+        onToggle={(event) => {
+          if (
+            event.newState === "open" &&
+            document.activeElement === trigger.current
+          )
+            focus(openingIndex.current);
+        }}
         onKeyDown={(event) => {
           event.stopPropagation();
           const index = options.current.indexOf(
