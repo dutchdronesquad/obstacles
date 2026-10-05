@@ -398,6 +398,20 @@ p {
   pointer-events: none;
   max-width: 85%;
   white-space: nowrap;
+  animation: empty-canvas-enter 160ms ease-out;
+}
+@keyframes empty-canvas-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .empty-canvas {
+    animation: none;
+  }
 }
 .empty-canvas p {
   font-size: 20px;

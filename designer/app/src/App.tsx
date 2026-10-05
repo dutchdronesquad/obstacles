@@ -101,6 +101,7 @@ const emptyView: EditorView = {
   guides: true,
   snap: true,
   drawing: false,
+  transitioning: false,
   layers: [],
 };
 const message = (error: unknown) =>
@@ -604,23 +605,32 @@ export function App() {
           <div className="workspace-stage">
             <div
               className="canvas-wrap"
+              data-transitioning={view.transitioning}
               aria-hidden={previewOpen}
               inert={previewOpen}
             >
               <div className="canvas-host" ref={host} />
-              {view.layers.length === 0 && !view.drawing && (
-                <div className="empty-canvas">
-                  <p>Make it yours.</p>
-                  <span>Import your logo or draw on the sheet.</span>
-                  <Button
-                    variant="toolbar"
-                    onClick={() => logoInput.current?.click()}
-                    disabled={busy}
-                  >
-                    <Plus size={16} /> Add your logo
-                  </Button>
-                </div>
-              )}
+              {view.layers.length === 0 &&
+                view.tool === "select" &&
+                view.panel === "all" &&
+                !view.drawing &&
+                !view.transitioning &&
+                !previewOpen &&
+                !busy &&
+                !help &&
+                !submissionOpen && (
+                  <div className="empty-canvas">
+                    <p>Make it yours.</p>
+                    <span>Import your logo or draw on the sheet.</span>
+                    <Button
+                      variant="toolbar"
+                      onClick={() => logoInput.current?.click()}
+                      disabled={busy}
+                    >
+                      <Plus size={16} /> Add your logo
+                    </Button>
+                  </div>
+                )}
               {view.drawing && view.tool === "pen" && (
                 <div className="drawing-actions">
                   <Button

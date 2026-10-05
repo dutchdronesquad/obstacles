@@ -165,6 +165,158 @@ async function upload(
     .filter({ hasText: "Logo added" })
     .waitFor({ state: "attached" });
 }
+
+test("empty invitation stays out of editing and panel focus moves smoothly without changing artwork", async (t) => {
+  for (const viewport of [
+    { width: 1440, height: 1024 },
+    { width: 390, height: 844 },
+  ]) {
+    const page = await openPage(t, viewport);
+    const prompt = page.getByText("Make it yours.", { exact: true });
+    const waitForTransition = () =>
+      page.waitForFunction(
+        () =>
+          document.querySelector(".canvas-wrap").dataset.transitioning ===
+          "false",
+      );
+    await prompt.waitFor();
+    for (const tool of ["Rectangle (R)", "Pan (H)", "Pen (P)"]) {
+      await page.getByRole("button", { name: tool, exact: true }).click();
+      assert.equal(await prompt.count(), 0);
+      await page
+        .getByRole("button", { name: "Select (V)", exact: true })
+        .click();
+      await prompt.waitFor();
+    }
+    const original = (await download(page)).design;
+    const initialZoom = Number(
+      (await page.getByLabel("Zoom", { exact: true }).textContent()).replace(
+        "%",
+        "",
+      ),
+    );
+    await page.getByRole("button", { name: "Left post", exact: true }).click();
+    assert.equal(await prompt.count(), 0);
+    const zooms = await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          const samples = [];
+          const sample = () => {
+            samples.push(
+              Number(
+                document
+                  .querySelector('[aria-label="Zoom"]')
+                  .textContent.replace("%", ""),
+              ),
+            );
+            if (
+              document.querySelector(".canvas-wrap").dataset.transitioning ===
+              "true"
+            )
+              requestAnimationFrame(sample);
+            else resolve(samples);
+          };
+          sample();
+        }),
+    );
+    assert.ok(
+      new Set(zooms).size >= 3,
+      "Panel focus should pass through intermediate zoom levels",
+    );
+    assert.ok(
+      zooms.at(-1) > initialZoom,
+      "The post should be enlarged to fit the viewport",
+    );
+    const postZoom = zooms.at(-1);
+    await page
+      .getByRole("button", { name: "Whole sheet", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+    assert.equal(
+      await page.locator(".canvas-wrap").getAttribute("data-transitioning"),
+      "false",
+    );
+    const manualZoom = await page
+      .getByLabel("Zoom", { exact: true })
+      .textContent();
+    const nextZoom = await page.evaluate(
+      () =>
+        new Promise((resolve) => {
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
+              resolve(
+                document.querySelector('[aria-label="Zoom"]').textContent,
+              ),
+            ),
+          );
+        }),
+    );
+    assert.equal(
+      nextZoom,
+      manualZoom,
+      "Camera animation must not override manual zoom",
+    );
+    await page.getByRole("button", { name: "Right post", exact: true }).click();
+    await page.getByRole("button", { name: "Top panel", exact: true }).click();
+    await waitForTransition();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Top panel", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    assert.equal(await prompt.count(), 0);
+    await page
+      .getByRole("button", { name: "Whole sheet", exact: true })
+      .click();
+    await waitForTransition();
+    await prompt.waitFor();
+    assert.equal(
+      Number(
+        (await page.getByLabel("Zoom", { exact: true }).textContent()).replace(
+          "%",
+          "",
+        ),
+      ),
+      initialZoom,
+    );
+    assert.deepEqual((await download(page)).design, original);
+
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.getByRole("button", { name: "Left post", exact: true }).click();
+    assert.equal(
+      await page.locator(".canvas-wrap").getAttribute("data-transitioning"),
+      "false",
+    );
+    assert.equal(
+      Number(
+        (await page.getByLabel("Zoom", { exact: true }).textContent()).replace(
+          "%",
+          "",
+        ),
+      ),
+      postZoom,
+    );
+    await page
+      .getByRole("button", { name: "Whole sheet", exact: true })
+      .click();
+    await prompt.waitFor();
+    assert.equal(
+      await page
+        .locator(".empty-canvas")
+        .evaluate((el) => getComputedStyle(el).animationName),
+      "none",
+    );
+    await page
+      .getByRole("button", { name: "Keyboard shortcuts", exact: true })
+      .click();
+    assert.equal(await prompt.count(), 0);
+    await page.getByRole("dialog").press("Escape");
+    await prompt.waitFor();
+    await upload(page);
+    assert.equal(await prompt.count(), 0);
+  }
+});
 async function download(page) {
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download SVG" }).click();
@@ -290,6 +442,10 @@ test("desktop and mobile submit a checked download and open the prefilled GitHub
 });
 async function draw(page, tool = "Rectangle (R)") {
   await page.getByRole("button", { name: "Top panel", exact: true }).click();
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".canvas-wrap").dataset.transitioning === "false",
+  );
   await page.getByRole("button", { name: tool, exact: true }).click();
   const canvas = page.getByRole("application", { name: "Artwork canvas" });
   await canvas.press("Enter");

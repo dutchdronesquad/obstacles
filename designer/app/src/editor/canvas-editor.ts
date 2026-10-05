@@ -15,6 +15,7 @@ import {
   controlsUtils,
   loadSVGFromString,
   util,
+  type TMat2D,
 } from "fabric";
 import {
   fromBase64,
@@ -70,6 +71,7 @@ export interface EditorView {
   guides: boolean;
   snap: boolean;
   drawing: boolean;
+  transitioning: boolean;
   selection?: Selection;
   layers: {
     id: string;
@@ -114,6 +116,7 @@ export class CanvasEditor {
   private cursor = new Point(350, 50);
   private keyboardDrawing = false;
   private isLoading = false;
+  private viewportFrame?: number;
 
   constructor(host: HTMLDivElement, design: Design, callbacks: Callbacks) {
     this.design = design;
@@ -176,6 +179,7 @@ export class CanvasEditor {
   }
 
   async load(design: Design) {
+    this.cancelViewportTransition();
     const generation = ++this.loadGeneration;
     this.isLoading = true;
     try {
@@ -289,9 +293,10 @@ export class CanvasEditor {
     this.selected();
   }
   setPanel(panel: string) {
+    if (panel === this.panel) return;
     this.cancelDrawing();
     this.panel = panel;
-    this.fit();
+    this.fit(true);
   }
   setGuides(value: boolean) {
     this.guides = value;
@@ -306,7 +311,8 @@ export class CanvasEditor {
     this.canvas.upperCanvasEl.focus();
   }
 
-  fit() {
+  fit(animate = false) {
+    this.cancelViewportTransition();
     const region = this.region();
     const width = this.canvas.width,
       height = this.canvas.height;
@@ -315,21 +321,49 @@ export class CanvasEditor {
       0.1,
       Math.min((width - 70) / region.width, (height - 70) / region.height),
     );
-    this.canvas.setViewportTransform([
+    const target: TMat2D = [
       zoom,
       0,
       0,
       zoom,
       (width - region.width * zoom) / 2 - region.x * zoom,
       (height - region.height * zoom) / 2 - region.y * zoom,
-    ]);
+    ];
     this.cursor = new Point(
       region.x + region.width / 2,
       region.y + region.height / 2,
     );
+    if (
+      animate &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      const start = [...this.canvas.viewportTransform];
+      const started = performance.now();
+      const frame = (now: number) => {
+        const progress = Math.min(1, (now - started) / 280);
+        const eased = 1 - (1 - progress) ** 3;
+        this.canvas.setViewportTransform(
+          target.map(
+            (value, index) => start[index] + (value - start[index]) * eased,
+          ) as TMat2D,
+        );
+        this.viewportFrame =
+          progress < 1 ? requestAnimationFrame(frame) : undefined;
+        this.emit();
+      };
+      this.viewportFrame = requestAnimationFrame(frame);
+    } else {
+      this.canvas.setViewportTransform(target);
+    }
     this.emit();
   }
+  private cancelViewportTransition() {
+    if (this.viewportFrame === undefined) return;
+    cancelAnimationFrame(this.viewportFrame);
+    this.viewportFrame = undefined;
+  }
   zoom(factor: number) {
+    this.cancelViewportTransition();
     this.canvas.zoomToPoint(
       new Point(this.canvas.width / 2, this.canvas.height / 2),
       Math.max(0.1, Math.min(12, this.canvas.getZoom() * factor)),
@@ -741,6 +775,10 @@ export class CanvasEditor {
       : point.clone();
   }
   private down(scene: Point, viewport: Point) {
+    if (this.viewportFrame !== undefined) {
+      this.cancelViewportTransition();
+      this.emit();
+    }
     if (this.isLoading) return;
     this.cursor = this.point(scene);
     if (this.tool === "hand") {
@@ -989,6 +1027,7 @@ export class CanvasEditor {
       guides: this.guides,
       snap: this.snap,
       drawing: Boolean(this.draft),
+      transitioning: this.viewportFrame !== undefined,
       selection,
       layers: this.canvas
         .getObjects()
@@ -1023,6 +1062,22 @@ export class CanvasEditor {
   }
   private onKey = (event: KeyboardEvent) => {
     if (this.isLoading) return;
+    if (
+      this.viewportFrame !== undefined &&
+      [
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown",
+        "Enter",
+        "Escape",
+        "Delete",
+        "Backspace",
+      ].includes(event.key)
+    ) {
+      this.cancelViewportTransition();
+      this.emit();
+    }
     if (event.key === "Escape") {
       this.cancelDrawing();
       this.canvas.discardActiveObject();
@@ -1075,6 +1130,7 @@ export class CanvasEditor {
     }
   };
   async dispose() {
+    this.cancelViewportTransition();
     this.disposed = true;
     ++this.loadGeneration;
     ++this.backgroundGeneration;
