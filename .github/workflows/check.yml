@@ -1,19 +1,47 @@
 name: Check assets
 on:
   push:
+    branches: [main]
   pull_request:
   # Used by the submission workflow, whose pull requests do not trigger pull_request runs.
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
+  # Build and test without deployment secrets, including on fork pull requests.
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      designer_changed: ${{ steps.designer.outputs.changed }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
+      - name: Find designer changes
+        id: designer
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before || 'origin/main' }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ] || [ "$BASE" = 0000000000000000000000000000000000000000 ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            set +e
+            git diff --quiet "$BASE" HEAD -- designer templates scripts tests package.json package-lock.json .github/workflows/check.yml .github/ISSUE_TEMPLATE/submit-collection.yml
+            result=$?
+            set -e
+            case "$result" in
+              0) echo "changed=false" >> "$GITHUB_OUTPUT" ;;
+              1) echo "changed=true" >> "$GITHUB_OUTPUT" ;;
+              *) exit "$result" ;;
+            esac
+          fi
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -29,10 +57,14 @@ jobs:
           npm run -s assets:check 2>&1 | tee previews/check-output.txt
           npm run typecheck
           npm test
+      - name: Install browser
+        id: browser
+        run: npx playwright install --with-deps chromium
       - name: Test designer in the browser
-        run: |
-          npx playwright install --with-deps chromium
-          npm run designer:test
+        run: npm run designer:test
+      - name: Check designer deployment package
+        if: steps.designer.outputs.changed == 'true'
+        run: npx wrangler deploy --config designer/app/wrangler.jsonc --dry-run
       # Preview the collections this branch changes, also when checks fail.
       - name: Find changed collections
         id: changed
@@ -42,12 +74,14 @@ jobs:
         run: |
           ids=$(git diff --name-only "$BASE"...HEAD -- collections | cut -d/ -f2 | grep -E '^[a-z0-9]+(-[a-z0-9]+)*$' | sort -u | while read -r id; do [ -f "collections/$id/manifest.json" ] && echo "$id"; done | tr '\n' ' ')
           echo "ids=$ids" >> "$GITHUB_OUTPUT"
+      - name: Install browser for failure previews
+        if: always() && steps.changed.outputs.ids != '' && steps.browser.outcome != 'success'
+        run: npx playwright install --with-deps chromium
       - name: Render contact sheets and 3D views
         if: always() && steps.changed.outputs.ids != ''
         env:
           IDS: ${{ steps.changed.outputs.ids }}
         run: |
-          npx playwright install --with-deps chromium
           # IDS holds validated slugs only; word splitting is intended.
           npm run -s textures:preview -- --3d $IDS
       - name: Upload previews
@@ -61,3 +95,64 @@ jobs:
         run: npm run assets:multigp:refresh
       - name: Test regenerated assets
         run: npm run assets:check && npm test
+      - name: Upload checked designer
+        if: steps.designer.outputs.changed == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: designer-site
+          path: designer/app/dist/
+          if-no-files-found: error
+
+  # Only deploy the checked artifact; fork PRs and manual non-main runs never get secrets.
+  deploy-designer:
+    needs: check
+    if: >-
+      needs.check.outputs.designer_changed == 'true'
+      && ((github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+      || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: ${{ github.event_name == 'pull_request' && 'designer-preview' || 'designer-production' }}
+      url: ${{ steps.preview.outputs.url || 'https://designer.trackdraw.app' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+          cache: npm
+      - name: Install deployment tooling
+        run: npm ci --ignore-scripts
+      - name: Download checked designer
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: designer-site
+          path: designer/app/dist/
+      - name: Deploy production
+        if: github.event_name != 'pull_request'
+        run: npx wrangler deploy --config designer/app/wrangler.jsonc
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Upload preview without changing production
+        if: github.event_name == 'pull_request'
+        id: preview
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -o pipefail
+          npx wrangler versions upload --config designer/app/wrangler.jsonc --preview-alias "pr-$PR_NUMBER" 2>&1 | tee "$RUNNER_TEMP/designer-upload.log"
+          preview_url=$(grep -Eo 'https://[a-z0-9.-]+\.workers\.dev' "$RUNNER_TEMP/designer-upload.log" | tail -1)
+          test -n "$preview_url"
+          echo "url=$preview_url" >> "$GITHUB_OUTPUT"
+          echo "[Open designer preview]($preview_url) for $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify deployed HTTPS
+        env:
+          SITE_URL: ${{ steps.preview.outputs.url || 'https://designer.trackdraw.app' }}
+        run: curl --fail --retry 5 --retry-all-errors --retry-delay 10 "$SITE_URL" --output /dev/null

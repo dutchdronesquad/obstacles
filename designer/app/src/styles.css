@@ -330,6 +330,14 @@ p {
 .primary:hover:not(:disabled) {
   background: #087dbb;
 }
+.download {
+  height: 32px;
+  gap: 7px;
+  padding: 0 10px;
+  font-weight: 400;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .editor-body {
   display: flex;
   min-height: 0;
@@ -1132,7 +1140,8 @@ kbd {
     display: none;
   }
   .download {
-    padding: 10px;
+    width: 32px;
+    padding: 0;
   }
   .download span {
     display: none;
@@ -1179,7 +1188,7 @@ kbd {
     height: 32px;
   }
   .download {
-    padding: 8px;
+    width: 27px;
   }
   .tool-rail {
     width: 58px;
