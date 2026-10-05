@@ -1080,6 +1080,9 @@ export class CanvasEditor {
     ++this.backgroundGeneration;
     this.observer.disconnect();
     this.canvas.upperCanvasEl.removeEventListener("keydown", this.onKey);
+    // Fabric restores its original canvas on disposal; detach this editor's
+    // wrapper first so that a remount cannot inherit that empty canvas.
+    this.canvas.wrapperEl.remove();
     await this.canvas.dispose();
   }
 }

@@ -61,7 +61,11 @@ after(async () => {
   await server?.dispose();
   if (directory) await rm(directory, { recursive: true, force: true });
 });
-async function openPage(t, viewport = { width: 1440, height: 1024 }) {
+async function openPage(
+  t,
+  viewport = { width: 1440, height: 1024 },
+  target = url,
+) {
   const page = await browser.newPage({ viewport });
   page.setDefaultTimeout(7000);
   const errors = [];
@@ -70,7 +74,7 @@ async function openPage(t, viewport = { width: 1440, height: 1024 }) {
     await page.close();
     assert.deepEqual(errors, []);
   });
-  await page.goto(url);
+  await page.goto(target);
   await page.getByRole("application", { name: "Artwork canvas" }).waitFor();
   await page.waitForFunction(
     () =>
@@ -82,6 +86,71 @@ async function openPage(t, viewport = { width: 1440, height: 1024 }) {
   );
   return page;
 }
+
+test("canvas and empty prompt stay centered when selecting a tool after initialization", async (t) => {
+  const { createServer } = await import("vite");
+  const development = await createServer({
+    root: new URL("../", import.meta.url).pathname,
+    server: { host: "127.0.0.1", port: 0 },
+  });
+  await development.listen();
+  t.after(() => development.close());
+  for (const target of [development.resolvedUrls.local[0], url]) {
+    for (const viewport of [
+      { width: 1440, height: 1024 },
+      { width: 390, height: 844 },
+    ]) {
+      const page = await openPage(t, viewport, target);
+      const position = () =>
+        page.evaluate(() => {
+          const host = document.querySelector(".canvas-host");
+          const bounds = host.getBoundingClientRect();
+          const canvas = document
+            .querySelector(".upper-canvas")
+            .getBoundingClientRect();
+          const prompt = document
+            .querySelector(".empty-canvas")
+            .getBoundingClientRect();
+          return {
+            canvasCount: host.querySelectorAll("canvas").length,
+            canvasOffset: canvas.y - bounds.y,
+            promptOffsetX:
+              prompt.x + prompt.width / 2 - bounds.x - bounds.width / 2,
+            promptOffsetY:
+              prompt.y + prompt.height / 2 - bounds.y - bounds.height / 2,
+            top: canvas.y,
+          };
+        });
+      const before = await position();
+      assert.equal(
+        before.canvasCount,
+        2,
+        "Only the active Fabric canvas pair should remain",
+      );
+      assert.equal(
+        before.canvasOffset,
+        0,
+        "Canvas should fill its host without an offset",
+      );
+      assert.ok(
+        Math.abs(before.promptOffsetX) < 1,
+        "Empty prompt should be horizontally centered",
+      );
+      assert.ok(
+        Math.abs(before.promptOffsetY) < 1,
+        "Empty prompt should be vertically centered",
+      );
+      await page
+        .getByRole("button", { name: "Select (V)", exact: true })
+        .click();
+      assert.deepEqual(
+        await position(),
+        before,
+        "Focusing Select must not shift the workspace",
+      );
+    }
+  }
+});
 async function upload(
   page,
   svg = logoSvg,

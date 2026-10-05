@@ -392,7 +392,7 @@ p {
 .empty-canvas {
   position: absolute;
   left: 50%;
-  top: 49%;
+  top: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
   pointer-events: none;
@@ -1130,7 +1130,6 @@ kbd {
   .empty-canvas {
     white-space: normal;
     width: 180px;
-    top: 40%;
   }
   .empty-canvas p {
     font-size: 15px;
