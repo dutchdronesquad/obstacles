@@ -29,6 +29,10 @@ jobs:
           npm run -s assets:check 2>&1 | tee previews/check-output.txt
           npm run typecheck
           npm test
+      - name: Test designer in the browser
+        run: |
+          npx playwright install --with-deps chromium
+          npm run designer:test
       # Preview the collections this branch changes, also when checks fail.
       - name: Find changed collections
         id: changed

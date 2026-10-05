@@ -20,6 +20,8 @@ A maintainer checks the submission and adds the `accepted-submission` label. A b
 
 ## Working in the repository
 
+Prefer to design in your browser? The [local artwork designer](designer/app/README.md) supports the standard gate and corner flag, logo uploads, colours, free vector drawing and placement per panel. Run `npm ci` and `npm run designer:dev`, then download the sheet into your collection's `source/` directory. You can reopen downloaded sheets in the app. Check the result with the same commands below; hosting and the submission shortcut will follow separately.
+
 Prefer git? Contribute directly with these steps.
 
 1. **Create the collection.** Add `collections/<organization-slug>/` with:

@@ -1,12 +1,12 @@
 # Plan: obstacle artwork designer
 
-Status: draft for discussion.
+Status: core implemented; local app implemented in issue #33, including the requested free vector editor. Live 3D preview (#34) and hosting/submission (#35) remain planned.
 
 ## Goal
 
-Let any racing organization design artwork for a supported obstacle in the browser, without Inkscape, layers, fonts or command-line tools, and submit it through the existing issue flow. The result must pass `npm run assets:check` unchanged.
+Let any racing organization design artwork for a supported obstacle in the browser, without installing Inkscape or using command-line tools, and submit it through the existing issue flow. The result must pass `npm run assets:check` unchanged.
 
-**Non-goals for the first version:** new obstacle geometry, accounts or server-side storage, editing existing published collections, free-form vector drawing, and private appearances in TrackDraw. A reusable core keeps the last one possible later.
+**Non-goals for the first version:** new obstacle geometry, accounts or server-side storage, editing existing published collections, and private appearances in TrackDraw. A reusable core keeps the last one possible later.
 
 ## User flow
 
@@ -43,7 +43,7 @@ scripts/                     existing tooling, which reads templates/templates.j
 
 ### Core (`designer/core`)
 
-- **Design model:** plain JSON with the template, colours, logo (embedded data), accent style and per-panel placement (visible, scale, offset). It is stored inside the exported SVG as `<metadata>`, so a downloaded sheet can be reopened and edited.
+- **Design model:** plain JSON with the template, colours, embedded images, accent style, per-panel placement for older designs and optional typed free artwork (shapes, paths and nested groups). It is stored inside the exported SVG as `<metadata>`, so a downloaded sheet can be reopened and edited.
 - **Placement rules:**
   - Gate: the left post reads bottom → top and the right post top → bottom (rotated −90° and +90°); the top reads left to right.
   - Flag: the front reads bottom → top and the back top → bottom, as in the DDS pilot.
@@ -56,13 +56,14 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 ### App (`designer/app`)
 
 - **Vite + TypeScript + React.** React matches TrackDraw and the viewer, which bundles React anyway.
+- **Free artwork:** Fabric handles canvas selection, transforms, grouping, freehand drawing and Bézier controls. Only checked geometry and embedded images enter the framework-free core; engine JSON is not persisted.
 - **2D preview:** the rendered sheet with guides visible, plus a toggle to show only what will be exported.
 - **3D preview:** `@trackdraw/viewer` with an `assetResolver` that serves panels rasterized in the browser: the sheet is drawn to a canvas per region, just as `exportSheet` does. The render design is the same as `scripts/render3d.mjs` (three angles). Browser rasterization can differ slightly from librsvg in CI; CI's preview comment remains the source of truth.
 - **Submit:** opens `issues/new?template=submit-collection.yml&organization=…&slug=…&usage=…` (issue forms prefill fields by `id`).
 
 ## Logos
 
-- **SVG:** embedded as an image (`<image href="data:image/svg+xml;base64,…">`), never inlined, so browsers render it in their restricted image mode: nothing in it runs, and it cannot load other files. librsvg renders it the same way in CI. Logos with scripts, event handlers or links to other files are refused with an explanation, so nothing silently disappears. A logo with live `<text>` is rasterized to an embedded PNG automatically, because CI rejects live text; the user is told that converting text to paths gives sharper edges.
+- **SVG:** imported geometry becomes editable typed vector objects when supported. SVGs with unsupported paints or clipping remain embedded images. Unsafe SVGs with scripts, event handlers or linked files are refused. Live text is rasterized to PNG; outlining text in the source preserves editable vectors. Raw uploaded markup is never mounted into the page or trusted as saved engine state.
 - **PNG/JPEG:** embedded as a data URI. The designer warns when the resolution is too low for the panel size, and when the estimated panel size gets close to 512 KiB.
 - Transparent logos are fine on gates: the panel background is part of the artwork, so nothing exports transparent there.
 
@@ -71,23 +72,23 @@ Being framework-free and DOM-free (apart from the optional rasterizer) keeps the
 **First version (MVP)**
 
 - Both templates that have an editable sheet.
-- One logo, background, accent and back colour.
+- Multiple logos and free vector artwork, background, accent and back colour.
 - Accent styles: none, line around the gate opening, band along the flag's bottom edge.
 - Automatic placement, adjustable per panel.
-- 2D and 3D preview, download, prefilled submit link.
+- Interactive 2D canvas and editable SVG download. 3D preview and the prefilled submit link follow in #34 and #35.
 - Reopening a downloaded sheet via its embedded design data.
 
 **Later**
 
 - Text with bundled open fonts, converted to paths with opentype.js.
-- Several logos or sponsor areas, and colour presets.
+- Colour presets and saved reusable sponsor arrangements.
 - More templates once their renderer mapping allows it. For example, the championship gate currently draws its right post from the left image.
 - Starting from an existing collection.
 - Using the core in TrackDraw for private appearances.
 
 ## Quality and tests
 
-- **Core unit tests (Vitest):** placement, rotations, safe areas and metadata round trips.
+- **Core unit tests (Node.js):** placement, rotations, safe areas and metadata round trips.
 - **Contract test in this repository:** for every template and a set of sample designs, `renderSheet` output must pass `withGeneratedTextures` and `checkImages` from `scripts/`. A designer sheet that CI would reject fails the build.
 - **Accessibility:** keyboard-operable controls, labels on colour inputs, and text alternatives for the previews.
 

@@ -3,6 +3,7 @@
 
 import { DesignError, fail } from './errors.ts';
 import { validateLogo } from './logo.ts';
+import { validateArtwork, type VectorItem } from './vector.ts';
 
 export { DesignError };
 
@@ -65,6 +66,8 @@ export interface Design {
   accent: AccentStyle;
   logo?: Logo;
   panels: Record<string, PanelPlacement>;
+  /** Free vector objects in sheet coordinates; absent in older designer sheets. */
+  artwork?: VectorItem[];
 }
 
 export const designLimits = { minScale: 0.1, maxScale: 1, nameLength: 80 };
@@ -128,4 +131,5 @@ export function validateDesign(definitions: TemplateDefinitions, design: Design)
     if (!isObject(design.logo)) fail('The logo is incomplete.');
     validateLogo(design.logo);
   }
+  if (design.artwork !== undefined) validateArtwork(design.artwork);
 }

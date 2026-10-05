@@ -69,7 +69,7 @@ export function checkSvgLogo(svg: string): void {
 /** Checks a logo's content against its kind, so designs from reopened sheets get the same checks as uploads. */
 export function validateLogo(logo: Logo): void {
   if (!['svg', 'png', 'jpeg'].includes(logo.kind)) fail('Logos must be SVG, PNG or JPEG.');
-  if (!(logo.width > 0 && logo.height > 0)) fail('The logo has no size.');
+  if (!(Number.isFinite(logo.width) && Number.isFinite(logo.height) && logo.width > 0 && logo.height > 0)) fail('The logo has no size.');
   if (typeof logo.data !== 'string' || !/^[A-Za-z0-9+/]+={0,2}$/.test(logo.data)) fail('The logo data is not valid base64.');
   if (logo.data.length * 0.75 > logoLimits.bytes) fail('The logo is larger than 5 MB.');
   const bytes = fromBase64(logo.data);

@@ -5,3 +5,4 @@ export * from './model.ts';
 export * from './logo.ts';
 export * from './placement.ts';
 export * from './render.ts';
+export * from './vector.ts';

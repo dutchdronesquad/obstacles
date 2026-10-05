@@ -16,7 +16,10 @@
     "assets:check": "node scripts/check-collections.mjs",
     "textures:build": "node scripts/build.mjs",
     "textures:preview": "node scripts/preview.mjs",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "designer:dev": "npm run dev --workspace designer/app",
+    "designer:build": "npm run build --workspace designer/app",
+    "designer:test": "npm run designer:build && node --test designer/app/e2e/designer.spec.mjs"
   },
   "devDependencies": {
     "@trackdraw/viewer": "1.0.1",
@@ -27,6 +30,7 @@
     "wrangler": "4.147.0"
   },
   "workspaces": [
-    "designer/core"
+    "designer/core",
+    "designer/app"
   ]
 }

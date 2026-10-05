@@ -4,6 +4,7 @@
 import { DesignError, fail } from './errors.ts';
 import { type Design, editableTemplate, type TemplateDefinitions, validateDesign } from './model.ts';
 import { bandOutline, frameOutline, placeLogo } from './placement.ts';
+import { renderArtwork } from './vector.ts';
 
 const logoId = 'designer-logo';
 const metadataId = 'designer-design';
@@ -23,6 +24,7 @@ export function renderSheet(definitions: TemplateDefinitions, templateSvg: strin
   const definition = editableTemplate(definitions, design.template);
   const clips: string[] = [];
   const panels: string[] = [];
+  const vectorPanels: string[] = [];
   for (const [id, panel] of Object.entries(definition.panels)) {
     let clip = panel.clipPath;
     if (!clip) {
@@ -37,11 +39,14 @@ export function renderSheet(definitions: TemplateDefinitions, templateSvg: strin
       parts.push(`<use href="#${logoId}" transform="translate(${n(place.cx)} ${n(place.cy)}) rotate(${place.rotation}) scale(${n(scale)}) translate(${n(-design.logo.width / 2)} ${n(-design.logo.height / 2)})"/>`);
     }
     panels.push(`    <g clip-path="url(#${clip})">\n      ${parts.join('\n      ')}\n    </g>`);
+    if (design.artwork?.length) vectorPanels.push(`    <g clip-path="url(#${clip})"><use href="#designer-artwork"/></g>`);
   }
   if (design.accent === 'frame') panels.push(`    <path d="${polygon(frameOutline(definition))}" fill="${design.colors.accent}"/>`);
+  panels.push(...vectorPanels);
   const artwork = `<g id="artwork" inkscape:groupmode="layer" inkscape:label="Artwork">\n${panels.join('\n')}\n  </g>`;
 
   const defs = [...clips];
+  if (design.artwork?.length) defs.push(`<g id="designer-artwork">${renderArtwork(design.artwork)}</g>`);
   if (design.logo) {
     defs.push(`<image id="${logoId}" width="${n(design.logo.width)}" height="${n(design.logo.height)}" preserveAspectRatio="none" href="data:${mime[design.logo.kind]};base64,${design.logo.data}"/>`);
   }
