@@ -2,13 +2,14 @@
 // Copyright (c) 2026 Klaas Schoute
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { preview } from "vite";
 import { chromium } from "playwright";
 import sharp from "sharp";
 import { checkCollections } from "../../../scripts/check-collections.mjs";
+import { exportSheet } from "../../../scripts/templates.mjs";
 import { templateDefinitions } from "../../../scripts/template-definitions.mjs";
 import {
   parseSheet,
@@ -42,7 +43,13 @@ before(async () => {
     preview: { host: "127.0.0.1", port: 0 },
   });
   url = `http://127.0.0.1:${server.httpServer.address().port}`;
-  browser = await chromium.launch();
+  browser = await chromium.launch({
+    args: [
+      "--use-angle=swiftshader",
+      "--enable-unsafe-swiftshader",
+      "--ignore-gpu-blocklist",
+    ],
+  });
 });
 after(async () => {
   await browser?.close();
@@ -118,7 +125,9 @@ async function draw(page, tool = "Rectangle (R)") {
   await canvas.press("Shift+ArrowRight");
   await canvas.press("Shift+ArrowDown");
   await canvas.press("Enter");
-  await page.getByLabel("Object name", { exact: true }).waitFor();
+  await page
+    .getByLabel("Object name", { exact: true })
+    .waitFor({ state: "attached" });
 }
 
 test("SVG vector groups transform, hide, undo and reopen without changing the export", async (t) => {
@@ -681,4 +690,280 @@ test("layer previews, multi-selection and per-layer actions preserve artwork", a
     assert.deepEqual(result.design, original);
     await checkDownload(result);
   }
+});
+
+test("live viewer uses CI panel crops, updates artwork and retains transparent flag outlines", async (t) => {
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 1024 },
+  });
+  t.after(() => page.close());
+  const errors = [],
+    external = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("request", (request) => {
+    if (/^https?:/.test(request.url()) && !request.url().startsWith(url))
+      external.push(request.url());
+  });
+  await page.addInitScript(() => {
+    window.previewPngs = [];
+    window.previewUrls = new Set();
+    const revoke = URL.revokeObjectURL.bind(URL);
+    URL.revokeObjectURL = (url) => {
+      window.previewUrls.delete(url);
+      revoke(url);
+    };
+    const create = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = (blob) => {
+      if (blob.type === "image/png") window.previewPngs.push(blob);
+      const url = create(blob);
+      if (blob.type === "image/png") window.previewUrls.add(url);
+      return url;
+    };
+  });
+  await page.goto(url);
+  await page.getByRole("button", { name: "3D view", exact: true }).click();
+  await page
+    .locator(".preview-viewer canvas[data-engine]")
+    .waitFor({ timeout: 30000 });
+  await page.waitForFunction(() => window.previewPngs.length >= 3);
+  await upload(page);
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".preview-heading [role=status]").textContent ===
+      "Live",
+  );
+  await page.waitForTimeout(1000);
+  async function comparePanels(template) {
+    const result = await download(page);
+    const ci = await exportSheet(result.svg, result.name);
+    const count = Object.keys(templateDefinitions[template].panels).length;
+    const pngs = await page.evaluate(
+      async (count) =>
+        Promise.all(
+          window.previewPngs
+            .slice(-count)
+            .map(async (blob) =>
+              Array.from(new Uint8Array(await blob.arrayBuffer())),
+            ),
+        ),
+      count,
+    );
+    for (const [index, [panel, bytes]] of Object.entries(ci.panels).entries()) {
+      const browserImage = sharp(Buffer.from(pngs[index])).ensureAlpha();
+      const ciImage = sharp(bytes).ensureAlpha();
+      const info = await browserImage.metadata(),
+        other = await ciImage.metadata();
+      assert.equal(info.width, other.width);
+      assert.equal(info.height, other.height);
+      const a = await browserImage.raw().toBuffer(),
+        b = await ciImage.raw().toBuffer();
+      let differing = 0;
+      for (let i = 0; i < a.length; i += 4)
+        if ([0, 1, 2, 3].some((c) => Math.abs(a[i + c] - b[i + c]) > 20))
+          differing++;
+      assert.ok(
+        differing / (info.width * info.height) < 0.02,
+        `${panel} differs materially from CI`,
+      );
+      if (template === "corner-flag-v1") {
+        assert.ok(a.some((value, i) => i % 4 === 3 && value === 0));
+        assert.ok(a.some((value, i) => i % 4 === 3 && value === 255));
+      }
+    }
+  }
+  await comparePanels("gate-standard-v1");
+  const before = await page.locator(".preview-viewer").screenshot();
+  await page
+    .getByRole("button", { name: "Sheet settings", exact: true })
+    .click();
+  await page.getByLabel("Background", { exact: true }).fill("#ef4444");
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".preview-heading [role=status]").textContent ===
+      "Live",
+  );
+  await page.waitForTimeout(1000);
+  const after = await page.locator(".preview-viewer").screenshot();
+  assert.notDeepEqual(before, after);
+  await comparePanels("gate-standard-v1");
+  await page.getByLabel("Gate back", { exact: true }).fill("#22c55e");
+  await page.waitForTimeout(1200);
+  const withBack = await page.locator(".preview-viewer").screenshot();
+  const previous = await sharp(after)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const coloured = await sharp(withBack).raw().toBuffer();
+  let changedGreen = 0;
+  for (let i = 0; i < coloured.length; i += previous.info.channels) {
+    const x = (i / previous.info.channels) % previous.info.width;
+    if (
+      x > previous.info.width / 2 &&
+      coloured[i + 1] > coloured[i] * 1.4 &&
+      coloured[i + 1] > coloured[i + 2] * 1.4 &&
+      Math.abs(coloured[i + 1] - previous.data[i + 1]) > 25
+    )
+      changedGreen++;
+  }
+  if (process.env.DESIGNER_SCREENSHOTS) {
+    await mkdir(process.env.DESIGNER_SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(process.env.DESIGNER_SCREENSHOTS, "gate-debug.jpg"),
+      type: "jpeg",
+    });
+  }
+  assert.ok(
+    changedGreen > 30,
+    `the actual back-angle panel must show the chosen green back colour (${changedGreen} pixels)`,
+  );
+  if (process.env.DESIGNER_SCREENSHOTS) {
+    await mkdir(process.env.DESIGNER_SCREENSHOTS, { recursive: true });
+    await page.screenshot({
+      path: path.join(process.env.DESIGNER_SCREENSHOTS, "gate-3d.jpg"),
+      type: "jpeg",
+    });
+  }
+  await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
+  await page.getByRole("option", { name: "Corner flag", exact: true }).click();
+  await upload(page);
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".preview-heading [role=status]").textContent ===
+      "Live",
+  );
+  await page.waitForTimeout(1000);
+  await page
+    .locator(".preview-viewer canvas[data-engine]")
+    .waitFor({ state: "visible", timeout: 30000 });
+  assert.equal(
+    await page.locator(".preview-heading [role=status]").textContent(),
+    "Live",
+  );
+  await comparePanels("corner-flag-v1");
+  if (process.env.DESIGNER_SCREENSHOTS)
+    await page.screenshot({
+      path: path.join(process.env.DESIGNER_SCREENSHOTS, "flag-3d.jpg"),
+      type: "jpeg",
+    });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page
+    .getByRole("button", { name: "Reset 3D camera", exact: true })
+    .click();
+  await page
+    .locator(".preview-viewer canvas[data-engine]")
+    .waitFor({ state: "visible", timeout: 30000 });
+  await page.waitForTimeout(500);
+  assert.equal(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+    false,
+  );
+  if (process.env.DESIGNER_SCREENSHOTS)
+    await page.screenshot({
+      path: path.join(process.env.DESIGNER_SCREENSHOTS, "mobile-3d.jpg"),
+      type: "jpeg",
+    });
+  await page.getByRole("button", { name: "2D view", exact: true }).click();
+  assert.equal(await page.evaluate(() => window.previewUrls.size), 0);
+  await page.getByRole("button", { name: "3D view", exact: true }).click();
+  await page
+    .locator(".preview-viewer canvas[data-engine]")
+    .waitFor({ timeout: 30000 });
+  assert.deepEqual(errors, []);
+  assert.deepEqual(external, []);
+});
+
+test("the view switch preserves the 2D panel, zoom and artwork selection", async (t) => {
+  const page = await openPage(t);
+  await draw(page);
+  await page.getByRole("button", { name: "Zoom in", exact: true }).click();
+  const zoom = await page.getByLabel("Zoom", { exact: true }).textContent();
+  const name = await page
+    .getByLabel("Object name", { exact: true })
+    .inputValue();
+  await page.getByRole("button", { name: "3D view", exact: true }).click();
+  await page
+    .locator(".preview-viewer canvas[data-engine]")
+    .waitFor({ timeout: 30000 });
+  assert.equal(
+    await page
+      .getByRole("application", { name: "Artwork canvas", includeHidden: true })
+      .isVisible(),
+    false,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Rectangle (R)", exact: true })
+      .isDisabled(),
+    true,
+  );
+  await page.keyboard.press("r");
+  assert.equal(
+    await page
+      .getByRole("button", { name: "3D view", exact: true })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  await page.getByRole("button", { name: "2D view", exact: true }).click();
+  assert.equal(
+    await page.getByLabel("Zoom", { exact: true }).textContent(),
+    zoom,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Top panel", exact: true })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  assert.equal(
+    await page.getByLabel("Object name", { exact: true }).inputValue(),
+    name,
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Rectangle (R)", exact: true })
+      .isEnabled(),
+    true,
+  );
+  await draw(page, "Ellipse (E)");
+  assert.equal((await download(page)).design.artwork.length, 2);
+});
+
+test("without WebGL the 2D editor still draws, undoes and downloads on mobile", async (t) => {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  t.after(() => page.close());
+  await page.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      return type === "webgl" ||
+        type === "webgl2" ||
+        type === "experimental-webgl"
+        ? null
+        : getContext.call(this, type, ...args);
+    };
+  });
+  await page.goto(url);
+  await page.getByRole("button", { name: "3D view", exact: true }).click();
+  await page
+    .getByText(
+      "3D needs WebGL. You can keep designing and downloading in 2D.",
+      { exact: true },
+    )
+    .waitFor({ timeout: 30000 });
+  assert.equal(
+    await page
+      .getByRole("button", { name: "2D view", exact: true })
+      .getAttribute("aria-pressed"),
+    "true",
+  );
+  await draw(page);
+  assert.equal((await download(page)).design.artwork.length, 1);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  assert.equal((await download(page)).design.artwork?.length ?? 0, 0);
+  assert.equal(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+    false,
+  );
 });

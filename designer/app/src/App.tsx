@@ -54,8 +54,9 @@ import {
   sizeWarnings,
   validTextureId,
 } from "./artwork.ts";
-import { downloadSheet, estimatePanelSizes, rasterizeSvg } from "./browser.ts";
+import { downloadSheet, rasterizePanels, rasterizeSvg } from "./browser.ts";
 import { DropdownSelect } from "./DropdownSelect.tsx";
+import { LivePreview } from "./LivePreview.tsx";
 import { LayersPanel } from "./LayersPanel.tsx";
 import { TemplatePicker } from "./TemplatePicker.tsx";
 import { sheets, templates } from "./templates.ts";
@@ -125,7 +126,15 @@ export function App() {
   const [aspect, setAspect] = useState(true),
     [allPanels, setAllPanels] = useState(true),
     [nodeIndex, setNodeIndex] = useState(0);
-  const [sizes, setSizes] = useState<{ sheet: string; warnings: string[] }>();
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewError, setPreviewError] = useState("");
+  const [previewUnavailable, setPreviewUnavailable] = useState("");
+  const [sizes, setSizes] = useState<{
+    sheet: string;
+    template: string;
+    warnings: string[];
+    panels: Record<string, Blob>;
+  }>();
   const operation = useRef(0);
   const definition = templates[doc.design.template],
     selected = view.selection;
@@ -194,18 +203,30 @@ export function App() {
   useEffect(() => {
     if (!rendered.sheet) return;
     let cancelled = false;
+    const abort = new AbortController();
+    setPreviewError("");
     const timer = setTimeout(() => {
-      void estimatePanelSizes(rendered.sheet, definition)
+      void rasterizePanels(rendered.sheet, definition, abort.signal)
         .then((result) => {
           if (!cancelled)
-            setSizes({ sheet: rendered.sheet, warnings: sizeWarnings(result) });
+            setSizes({
+              sheet: rendered.sheet,
+              template: doc.design.template,
+              panels: result,
+              warnings: sizeWarnings(
+                Object.fromEntries(
+                  Object.entries(result).map(([id, blob]) => [id, blob.size]),
+                ),
+              ),
+            });
         })
         .catch((error) => {
-          if (!cancelled) setError(message(error));
+          if (!cancelled) setPreviewError(message(error));
         });
     }, 500);
     return () => {
       cancelled = true;
+      abort.abort();
       clearTimeout(timer);
     };
   }, [rendered.sheet, definition]);
@@ -247,7 +268,7 @@ export function App() {
           event.preventDefault();
           event.shiftKey ? engine.current?.ungroup() : engine.current?.group();
         }
-      } else {
+      } else if (!previewOpen) {
         const tool = tools.find((tool) => tool.key.toLowerCase() === key);
         if (tool) {
           event.preventDefault();
@@ -441,7 +462,7 @@ export function App() {
           {tools.map((tool) => (
             <button
               key={tool.id}
-              disabled={busy}
+              disabled={busy || previewOpen}
               className={view.tool === tool.id ? "tool active" : "tool"}
               aria-pressed={view.tool === tool.id}
               aria-label={`${tool.name} (${tool.key})`}
@@ -476,63 +497,128 @@ export function App() {
           </button>
         </nav>
         <section className="canvas-area" aria-label="Artwork workspace">
-          <nav className="panel-tabs" aria-label="Panel focus">
-            <TemplatePicker
-              value={doc.design.template}
-              disabled={busy}
-              onChange={(template) => void changeTemplate(template)}
-            />
-            <span className="panel-type-divider" aria-hidden />
-            {[
-              ["all", "Whole sheet"],
-              ...Object.keys(definition.panels).map((id) => [
-                id,
-                panelLabel(id),
-              ]),
-            ].map(([id, label]) => (
+          <div className="canvas-toolbar">
+            <nav className="panel-tabs" aria-label="Panel focus">
+              <TemplatePicker
+                value={doc.design.template}
+                disabled={busy}
+                onChange={(template) => void changeTemplate(template)}
+              />
+              {!previewOpen && (
+                <>
+                  <span className="panel-type-divider" aria-hidden />
+                  {[
+                    ["all", "Whole sheet"],
+                    ...Object.keys(definition.panels).map((id) => [
+                      id,
+                      panelLabel(id),
+                    ]),
+                  ].map(([id, label]) => (
+                    <button
+                      key={id}
+                      className={
+                        view.panel === id ? "panel-tab active" : "panel-tab"
+                      }
+                      aria-pressed={view.panel === id}
+                      onClick={() => engine.current?.setPanel(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </>
+              )}
+            </nav>
+            <div
+              className="view-switch"
+              role="group"
+              aria-label="Workspace view"
+            >
               <button
-                key={id}
-                className={view.panel === id ? "panel-tab active" : "panel-tab"}
-                aria-pressed={view.panel === id}
-                onClick={() => engine.current?.setPanel(id)}
+                aria-label="2D view"
+                aria-pressed={!previewOpen}
+                onClick={() => setPreviewOpen(false)}
               >
-                {label}
+                2D
               </button>
-            ))}
-          </nav>
-          <div className="canvas-wrap">
-            <div className="canvas-host" ref={host} />
-            {view.layers.length === 0 && !view.drawing && (
-              <div className="empty-canvas">
-                <p>Make it yours.</p>
-                <span>Import your logo or draw on the sheet.</span>
-                <button
-                  onClick={() => logoInput.current?.click()}
-                  disabled={busy}
-                >
-                  <Plus size={16} /> Add your logo
-                </button>
-              </div>
-            )}
-            {view.drawing && view.tool === "pen" && (
-              <div className="drawing-actions">
-                <button onClick={() => engine.current?.finishPath()}>
-                  Finish path
-                </button>
-                <button onClick={() => engine.current?.finishPath(true)}>
-                  Close path
-                </button>
-                <Action
-                  icon={X}
-                  label="Cancel path"
-                  onClick={() => engine.current?.cancelDrawing()}
-                />
-              </div>
-            )}
-            {busy && (
-              <div className="busy-overlay" role="status">
-                Opening your file…
-              </div>
+              <button
+                aria-label="3D view"
+                aria-pressed={previewOpen}
+                disabled={busy || view.drawing}
+                title={
+                  view.drawing
+                    ? "Finish drawing before switching to 3D"
+                    : "View your artwork in 3D"
+                }
+                onClick={() => {
+                  setPreviewUnavailable("");
+                  setPreviewOpen(true);
+                }}
+              >
+                3D
+              </button>
+            </div>
+          </div>
+          {previewUnavailable && (
+            <div className="preview-fallback" role="status">
+              {previewUnavailable}
+            </div>
+          )}
+          <div className="workspace-stage">
+            <div
+              className="canvas-wrap"
+              aria-hidden={previewOpen}
+              inert={previewOpen}
+            >
+              <div className="canvas-host" ref={host} />
+              {view.layers.length === 0 && !view.drawing && (
+                <div className="empty-canvas">
+                  <p>Make it yours.</p>
+                  <span>Import your logo or draw on the sheet.</span>
+                  <button
+                    onClick={() => logoInput.current?.click()}
+                    disabled={busy}
+                  >
+                    <Plus size={16} /> Add your logo
+                  </button>
+                </div>
+              )}
+              {view.drawing && view.tool === "pen" && (
+                <div className="drawing-actions">
+                  <button onClick={() => engine.current?.finishPath()}>
+                    Finish path
+                  </button>
+                  <button onClick={() => engine.current?.finishPath(true)}>
+                    Close path
+                  </button>
+                  <Action
+                    icon={X}
+                    label="Cancel path"
+                    onClick={() => engine.current?.cancelDrawing()}
+                  />
+                </div>
+              )}
+              {busy && (
+                <div className="busy-overlay" role="status">
+                  Opening your file…
+                </div>
+              )}
+            </div>
+            {previewOpen && (
+              <LivePreview
+                backColor={doc.design.colors.back}
+                template={doc.design.template}
+                panels={
+                  sizes?.template === doc.design.template
+                    ? sizes.panels
+                    : undefined
+                }
+                updating={sizes?.sheet !== rendered.sheet}
+                error={previewError || rendered.error}
+                onUnavailable={(reason) => {
+                  setPreviewUnavailable(reason);
+                  setPreviewOpen(false);
+                }}
+              />
             )}
           </div>
         </section>
@@ -922,46 +1008,54 @@ export function App() {
         </aside>
       </div>
       <footer className="status-bar">
-        <div className="zoom-controls">
-          <Action
-            icon={Minus}
-            label="Zoom out"
-            onClick={() => engine.current?.zoom(0.8)}
-          />
-          <output aria-label="Zoom">{view.zoom}%</output>
-          <Action
-            icon={Plus}
-            label="Zoom in"
-            onClick={() => engine.current?.zoom(1.25)}
-          />
-          <Action
-            icon={ArrowsOut}
-            label="Fit sheet"
-            onClick={() => engine.current?.fit()}
-          />
-        </div>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={view.guides}
-            onChange={(event) =>
-              engine.current?.setGuides(event.target.checked)
-            }
-          />
-          Guides
-        </label>
-        <label className="checkbox">
-          <input
-            type="checkbox"
-            checked={view.snap}
-            onChange={(event) => engine.current?.setSnap(event.target.checked)}
-          />
-          Snap
-        </label>
+        {!previewOpen && (
+          <>
+            <div className="zoom-controls">
+              <Action
+                icon={Minus}
+                label="Zoom out"
+                onClick={() => engine.current?.zoom(0.8)}
+              />
+              <output aria-label="Zoom">{view.zoom}%</output>
+              <Action
+                icon={Plus}
+                label="Zoom in"
+                onClick={() => engine.current?.zoom(1.25)}
+              />
+              <Action
+                icon={ArrowsOut}
+                label="Fit sheet"
+                onClick={() => engine.current?.fit()}
+              />
+            </div>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={view.guides}
+                onChange={(event) =>
+                  engine.current?.setGuides(event.target.checked)
+                }
+              />
+              Guides
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={view.snap}
+                onChange={(event) =>
+                  engine.current?.setSnap(event.target.checked)
+                }
+              />
+              Snap
+            </label>
+          </>
+        )}
         <p className="status" role="status">
-          {view.tool !== "select"
-            ? hints[view.tool]
-            : notice || hints[view.tool]}
+          {previewOpen
+            ? notice || "Drag to orbit · Scroll or pinch to zoom"
+            : view.tool !== "select"
+              ? hints[view.tool]
+              : notice || hints[view.tool]}
         </p>
         <Action
           icon={Question}
