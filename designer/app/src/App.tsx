@@ -50,7 +50,6 @@ import {
   parseSheet,
   prepareLogo,
   renderSheet,
-  type AccentStyle,
   type Design,
 } from "@track-assets/designer-core";
 import {
@@ -60,6 +59,7 @@ import {
   validTextureId,
 } from "./artwork.ts";
 import { downloadSheet, estimatePanelSizes, rasterizeSvg } from "./browser.ts";
+import { DropdownSelect } from "./DropdownSelect.tsx";
 import { TemplatePicker } from "./TemplatePicker.tsx";
 import { sheets, templates } from "./templates.ts";
 import {
@@ -713,24 +713,21 @@ export function App() {
               )}
               {selected.nodes && (
                 <PropertySection title="Path points">
-                  <label className="field">
-                    Selected point
-                    <select
-                      aria-label="Selected point"
+                  <div className="field">
+                    <span>Selected point</span>
+                    <DropdownSelect
+                      label="Selected point"
                       value={Math.min(nodeIndex, selected.nodes.length - 1)}
-                      onChange={(event) =>
-                        setNodeIndex(Number(event.target.value))
-                      }
-                    >
-                      {selected.nodes.map((command, index) => (
-                        <option key={index} value={index}>
-                          {command[0] === "Z"
+                      onChange={setNodeIndex}
+                      choices={selected.nodes.map((command, index) => ({
+                        value: index,
+                        label:
+                          command[0] === "Z"
                             ? "Close path"
-                            : `Point ${index + 1} · ${command[0] === "C" || command[0] === "Q" ? "curve" : "corner"}`}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                            : `Point ${index + 1} · ${command[0] === "C" || command[0] === "Q" ? "curve" : "corner"}`,
+                      }))}
+                    />
+                  </div>
                   <div className="property-grid">
                     {pathNode?.slice(1).map((value, index) => (
                       <NumberField
@@ -822,27 +819,23 @@ export function App() {
                     />
                   )}
                 </div>
-                <label className="field">
-                  Accent style
-                  <select
+                <div className="field">
+                  <span>Accent style</span>
+                  <DropdownSelect
+                    label="Accent style"
                     value={doc.design.accent}
-                    onChange={(event) =>
-                      changeBase({ accent: event.target.value as AccentStyle })
-                    }
-                  >
-                    {accentStyles(definition).map((style) => (
-                      <option key={style} value={style}>
-                        {
-                          {
-                            none: "None",
-                            frame: "Opening frame",
-                            band: "Bottom band",
-                          }[style]
-                        }
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    disabled={busy}
+                    onChange={(accent) => changeBase({ accent })}
+                    choices={accentStyles(definition).map((style) => ({
+                      value: style,
+                      label: {
+                        none: "None",
+                        frame: "Opening frame",
+                        band: "Bottom band",
+                      }[style],
+                    }))}
+                  />
+                </div>
               </PropertySection>
               <PropertySection title="Logo placement">
                 <label className="checkbox">

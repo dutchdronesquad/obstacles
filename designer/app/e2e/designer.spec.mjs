@@ -177,7 +177,12 @@ test("free shapes, editable Bézier nodes, grouping and keyboard undo survive SV
   await page
     .getByRole("button", { name: "Convert to editable path", exact: true })
     .click();
-  await page.getByLabel("Selected point", { exact: true }).selectOption("1");
+  await page
+    .getByRole("combobox", { name: "Selected point", exact: true })
+    .click();
+  await page
+    .getByRole("option", { name: "Point 2 · corner", exact: true })
+    .click();
   await page.getByRole("button", { name: "Curve", exact: true }).click();
   await page.getByLabel("Handle 1 Y", { exact: true }).fill("32");
   const curve = (await download(page)).design.artwork[0];
@@ -447,4 +452,104 @@ test("template picker supports keyboard selection, dismissal and undo without cl
   await picker.click();
   await page.getByRole("button", { name: "Top panel", exact: true }).click();
   assert.equal(await picker.getAttribute("aria-expanded"), "false");
+});
+
+test("accent dropdown preserves keyboard focus, undo and template-specific choices on desktop and mobile", async (t) => {
+  for (const viewport of [
+    { width: 1440, height: 1024 },
+    { width: 390, height: 844 },
+  ]) {
+    const page = await openPage(t, viewport);
+    const mobile = viewport.width < 900;
+    if (mobile)
+      await page
+        .getByRole("button", { name: "Properties", exact: true })
+        .click();
+    const accent = page.getByRole("combobox", {
+      name: "Accent style",
+      exact: true,
+    });
+    await accent.press("ArrowDown");
+    const frame = page.getByRole("option", {
+      name: "Opening frame",
+      exact: true,
+    });
+    assert.equal(await frame.getAttribute("aria-selected"), "true");
+    await frame.press("Escape");
+    assert.equal(await accent.getAttribute("aria-expanded"), "false");
+    assert.equal(
+      await accent.evaluate((element) => element === document.activeElement),
+      true,
+    );
+    await accent.press("ArrowDown");
+    await frame.press("Tab");
+    await page
+      .getByRole("listbox", { name: "Accent style", exact: true })
+      .waitFor({ state: "hidden" });
+    assert.equal(await accent.getAttribute("aria-expanded"), "false");
+    assert.equal(
+      await page
+        .getByRole("checkbox", {
+          name: "Add imported logos to every panel",
+          exact: true,
+        })
+        .evaluate((element) => element === document.activeElement),
+      true,
+    );
+    await accent.press("Home");
+    await page
+      .getByRole("option", { name: "None", exact: true })
+      .press("Enter");
+    assert.equal((await download(page)).design.accent, "none");
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await page
+      .locator(".status")
+      .filter({ hasText: "Change undone" })
+      .waitFor({ state: "attached" });
+    assert.equal((await download(page)).design.accent, "frame");
+    if (mobile)
+      await page
+        .getByRole("button", { name: "Close properties", exact: true })
+        .click();
+    await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
+    await page
+      .getByRole("option", { name: "Corner flag", exact: true })
+      .click();
+    await page
+      .locator(".status")
+      .filter({ hasText: "New sheet started" })
+      .waitFor({ state: "attached" });
+    if (mobile)
+      await page
+        .getByRole("button", { name: "Properties", exact: true })
+        .click();
+    await accent.click();
+    assert.equal(
+      await page
+        .getByRole("option", { name: "Opening frame", exact: true })
+        .count(),
+      0,
+    );
+    assert.equal(
+      await page
+        .getByRole("option", { name: "Bottom band", exact: true })
+        .getAttribute("aria-selected"),
+      "true",
+    );
+    const menu = page.getByRole("listbox", {
+      name: "Accent style",
+      exact: true,
+    });
+    const bounds = await menu.boundingBox();
+    assert.ok(
+      bounds.x >= 0 &&
+        bounds.y >= 0 &&
+        bounds.x + bounds.width <= viewport.width &&
+        bounds.y + bounds.height <= viewport.height,
+    );
+    await page.getByRole("option", { name: "None", exact: true }).click();
+    const result = await download(page);
+    assert.equal(result.design.accent, "none");
+    await checkDownload(result);
+  }
 });
