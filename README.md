@@ -16,6 +16,8 @@ Available collections: [MultiGP](collections/multigp/README.md).
 
 Want to add your organization's obstacle artwork? See [CONTRIBUTING.md](CONTRIBUTING.md) and the [texture templates](templates/README.md).
 
+The [local artwork designer](designer/app/README.md) lets you create gate and flag sheets in the browser, with logos, colours, free vector drawing and placement per panel. Start it with `npm run designer:dev` after installing dependencies.
+
 ## Related repositories
 
 - [TrackDraw](https://github.com/dutchdronesquad/trackdraw) — the browser-based FPV track designer that uses these assets to represent obstacles in track layouts.
@@ -31,7 +33,7 @@ Asset sources, credits and any known usage terms belong in each collection's REA
 
 ### Software
 
-The scripts in `scripts/` and their tests in `tests/` are available under the [MIT license](LICENSE-MIT.txt). The extraction and optimization scripts originated in [TrackDraw](https://github.com/dutchdronesquad/trackdraw/tree/9a04180f3c0a0cdf85de8a8599031cf7fd994d4a) and are offered here under MIT with the copyright holder's permission. TrackDraw itself retains its own license.
+The scripts in `scripts/`, the artwork designer in `designer/` and their tests are available under the [MIT license](LICENSE-MIT.txt). The extraction and optimization scripts originated in [TrackDraw](https://github.com/dutchdronesquad/trackdraw/tree/9a04180f3c0a0cdf85de8a8599031cf7fd994d4a) and are offered here under MIT with the copyright holder's permission. TrackDraw itself retains its own license.
 
 The MIT license applies to this software, not to the source models, textures, third-party artwork, branding or designs in the asset collections. Hosting these materials here or using them with `@trackdraw/viewer` does not change their rights or licensing terms.
 
