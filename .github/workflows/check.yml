@@ -33,14 +33,18 @@ jobs:
           npm run -s assets:check 2>&1 | tee previews/check-output.txt
           npm run typecheck
           npm test
-      # Preview the collections this branch changes, also when checks fail.
-      - name: Find changed collections
+      # Preview changed artwork and manifests, including on failure; collection docs do not change the rendered result.
+      - name: Find collections with artwork changes
         id: changed
         if: always() && steps.install.outcome == 'success' && github.event_name != 'push'
         env:
           BASE: ${{ github.event.pull_request.base.sha || 'origin/main' }}
         run: |
-          ids=$(git diff --name-only "$BASE"...HEAD -- collections | cut -d/ -f2 | grep -E '^[a-z0-9]+(-[a-z0-9]+)*$' | sort -u | while read -r id; do [ -f "collections/$id/manifest.json" ] && echo "$id"; done | tr '\n' ' ')
+          ids=$(git diff --name-only "$BASE"...HEAD -- \
+            ':(glob)collections/*/manifest.json' \
+            ':(glob)collections/*/source/**/*.svg' \
+            ':(glob)collections/*/textures/*.webp' \
+            | cut -d/ -f2 | grep -E '^[a-z0-9]+(-[a-z0-9]+)*$' | sort -u | while read -r id; do [ -f "collections/$id/manifest.json" ] && echo "$id"; done | tr '\n' ' ')
           echo "ids=$ids" >> "$GITHUB_OUTPUT"
       - name: Render contact sheets and 3D views
         if: always() && steps.changed.outputs.ids != ''
