@@ -315,6 +315,24 @@ test("empty invitation stays out of editing and panel focus moves smoothly witho
     await prompt.waitFor();
     await upload(page);
     assert.equal(await prompt.count(), 0);
+    await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
+    await page
+      .getByRole("option", { name: "Corner flag", exact: true })
+      .click();
+    await page.getByRole("button", { name: "Front", exact: true }).waitFor();
+    assert.equal(
+      await prompt.count(),
+      0,
+      "The invitation must not cover flag artwork",
+    );
+    await page.getByRole("button", { name: "Select (V)", exact: true }).click();
+    assert.equal(await prompt.count(), 0);
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Import logo", exact: true })
+        .isEnabled(),
+      true,
+    );
   }
 });
 async function download(page) {

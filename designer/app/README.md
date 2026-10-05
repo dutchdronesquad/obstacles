@@ -21,7 +21,7 @@ Shared controls use local [shadcn/ui](https://ui.shadcn.com/) components in `src
 
 Mobile keeps the canvas and tools visible, with Properties opening as a drawer. All controls have accessible names; Keyboard shortcuts lists the tools and common operations. On the canvas, arrows move a selection (Shift moves faster). For keyboard drawing, arrows move the drawing cursor; Enter starts and finishes a rectangle or ellipse, or adds a pen point. Control/Command + Enter finishes a pen path. Escape cancels; Delete removes the selection.
 
-The empty-sheet invitation appears only in the full 2D sheet with Select active and no artwork. It stays out of individual panels, drawing, camera transitions and open dialogs. Panel tabs smoothly pan and zoom to their target; a new panel choice replaces the current transition, while drawing, panning or zooming takes control immediately. Reduced-motion preferences skip the animation.
+The empty-sheet invitation appears only in the full 2D gate sheet with Select active and no artwork. It stays out of flag sheets, individual panels, drawing, camera transitions and open dialogs. Panel tabs smoothly pan and zoom to their target; a new panel choice replaces the current transition, while drawing, panning or zooming takes control immediately. Reduced-motion preferences skip the animation.
 
 Raster images warn when upscaled at export resolution. Panel-size warnings use PNG estimates rendered in the browser. They are advisory: the repository checks use lossless WebP and may produce different sizes. Complex artwork may need simplifying to pass the 512 KiB limit. Always run `npm run assets:check` after adding a downloaded sheet to a collection.
 

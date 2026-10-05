@@ -610,7 +610,8 @@ export function App() {
               inert={previewOpen}
             >
               <div className="canvas-host" ref={host} />
-              {view.layers.length === 0 &&
+              {definition.transparency === "opaque" &&
+                view.layers.length === 0 &&
                 view.tool === "select" &&
                 view.panel === "all" &&
                 !view.drawing &&
