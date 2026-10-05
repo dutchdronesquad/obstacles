@@ -10,7 +10,7 @@ concurrency:
   group: preview-comment-${{ github.event.workflow_run.id }}
 jobs:
   comment:
-    name: Publish collection previews
+    name: Comment
     if: >-
       (github.event.workflow_run.event == 'pull_request' || github.event.workflow_run.event == 'workflow_dispatch')
       && github.event.workflow_run.actor.login != 'dependabot[bot]'

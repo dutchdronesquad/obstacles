@@ -31,8 +31,8 @@ concurrency:
 
 jobs:
   # No environment or secrets while building and testing artwork or application code.
-  build-and-test:
-    name: Build and test designer
+  build:
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -63,8 +63,8 @@ jobs:
           if-no-files-found: error
 
   production:
-    name: Deploy designer to production
-    needs: build-and-test
+    name: Deploy Production
+    needs: build
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -97,8 +97,8 @@ jobs:
         run: curl --fail --retry 5 --retry-all-errors --retry-delay 10 https://designer.trackdraw.app/ --output /dev/null
 
   preview:
-    name: Deploy designer preview
-    needs: build-and-test
+    name: Deploy Preview
+    needs: build
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10

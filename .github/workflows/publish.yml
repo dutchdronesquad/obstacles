@@ -15,7 +15,7 @@ concurrency:
 jobs:
   # Renders template sheets and checks everything without access to secrets.
   build:
-    name: Build public assets
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -39,7 +39,7 @@ jobs:
           if-no-files-found: error
   # Only uploads the checked bytes; never renders submitted artwork while secrets are present.
   upload:
-    name: Publish assets to R2
+    name: Publish
     needs: build
     runs-on: ubuntu-latest
     environment: production
@@ -68,7 +68,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
   verify:
-    name: Verify published assets
+    name: Verify
     needs: upload
     runs-on: ubuntu-latest
     timeout-minutes: 10
