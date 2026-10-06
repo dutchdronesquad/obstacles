@@ -13,11 +13,12 @@ concurrency:
 
 jobs:
   build:
+    name: Checks
     if: ${{ !github.event.release.prerelease }}
     uses: ./.github/workflows/designer-build.yml
 
   production:
-    name: Deploy Production
+    name: Production
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10

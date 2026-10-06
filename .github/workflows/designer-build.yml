@@ -16,7 +16,7 @@ permissions:
 jobs:
   # No environment or secrets while building and testing artwork or application code.
   build:
-    name: Build
+    name: Build and test
     runs-on: ubuntu-latest
     timeout-minutes: 20
     outputs:
