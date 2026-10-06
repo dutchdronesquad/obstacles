@@ -1,3 +1,4 @@
+import { IconButton } from "./components/IconButton";
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Klaas Schoute
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -182,14 +183,13 @@ export function LivePreview({
                 ? "Live"
                 : "Loading…"}
         </span>
-        <button
-          aria-label="Reset 3D camera"
-          title="Reset 3D camera"
+        <IconButton
+          label="Reset 3D camera"
           onClick={() => setReset((value) => value + 1)}
           disabled={!ready || !!unavailable}
         >
           <ArrowClockwise size={16} />
-        </button>
+        </IconButton>
       </header>
       <div className="preview-stage">
         <div className="preview-viewer" ref={host} hidden={!!unavailable} />
