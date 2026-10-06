@@ -124,6 +124,10 @@ const hints: Record<Tool, string> = {
   ellipse: "Drag to draw an ellipse",
   hand: "Drag to move around the sheet",
 };
+const releaseUrl = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(__DESIGNER_VERSION__)
+  ? `https://github.com/dutchdronesquad/track-assets/releases/tag/${encodeURIComponent(__DESIGNER_VERSION__)}`
+  : undefined;
+const VersionLabel = releaseUrl ? "a" : "span";
 
 export function App() {
   const [doc, setDoc] = useState(initial);
@@ -1122,6 +1126,16 @@ export function App() {
               ? hints[view.tool]
               : notice || hints[view.tool]}
         </p>
+        <VersionLabel
+          className="app-version"
+          aria-label="Designer version"
+          title={`${__DESIGNER_VERSION__} · Commit ${__DESIGNER_COMMIT__}`}
+          href={releaseUrl}
+          target={releaseUrl ? "_blank" : undefined}
+          rel={releaseUrl ? "noreferrer" : undefined}
+        >
+          {__DESIGNER_VERSION__}
+        </VersionLabel>
         <Action
           buttonRef={helpTrigger}
           icon={Question}

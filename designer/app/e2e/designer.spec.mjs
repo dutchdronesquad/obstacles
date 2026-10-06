@@ -87,6 +87,31 @@ async function openPage(
   return page;
 }
 
+test("build version is visible on desktop and mobile and matches uncached metadata", async (t) => {
+  const expected = {
+    version: process.env.VITE_DESIGNER_VERSION || "dev",
+    commit: process.env.VITE_DESIGNER_COMMIT || "local",
+  };
+  const response = await fetch(`${url}/version.json`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await response.json(), expected);
+  for (const viewport of [{ width: 1440, height: 1024 }, { width: 390, height: 844 }]) {
+    const page = await openPage(t, viewport);
+    const version = page.getByLabel("Designer version", { exact: true });
+    assert.equal(await version.isVisible(), true);
+    assert.equal(await version.textContent(), expected.version);
+    assert.equal(await version.getAttribute("title"), `${expected.version} · Commit ${expected.commit}`);
+    const release = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(expected.version);
+    assert.equal(await version.getAttribute("href"), release
+      ? `https://github.com/dutchdronesquad/track-assets/releases/tag/${encodeURIComponent(expected.version)}`
+      : null);
+    assert.equal(await version.getAttribute("target"), release ? "_blank" : null);
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.close();
+  }
+});
+
 test("canvas and empty prompt stay centered when selecting a tool after initialization", async (t) => {
   const { createServer } = await import("vite");
   const development = await createServer({
@@ -148,6 +173,7 @@ test("canvas and empty prompt stay centered when selecting a tool after initiali
         before,
         "Focusing Select must not shift the workspace",
       );
+      await page.close();
     }
   }
 });
@@ -166,11 +192,11 @@ async function upload(
     .waitFor({ state: "attached" });
 }
 
-test("empty invitation stays out of editing and panel focus moves smoothly without changing artwork", async (t) => {
-  for (const viewport of [
-    { width: 1440, height: 1024 },
-    { width: 390, height: 844 },
-  ]) {
+for (const viewport of [
+  { width: 1440, height: 1024 },
+  { width: 390, height: 844 },
+]) {
+  test(`empty invitation stays out of editing and panel focus moves smoothly without changing artwork (${viewport.width}px)`, async (t) => {
     const page = await openPage(t, viewport);
     const prompt = page.getByText("Make it yours.", { exact: true });
     const waitForTransition = () =>
@@ -316,6 +342,11 @@ test("empty invitation stays out of editing and panel focus moves smoothly witho
     await upload(page);
     assert.equal(await prompt.count(), 0);
     await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
+    assert.equal(
+      await page.locator('[data-slot="select-content"]').evaluate((el) => getComputedStyle(el).animationName),
+      "none",
+      "Obstacle menus must respect reduced motion as well as the canvas",
+    );
     await page
       .getByRole("option", { name: "Corner flag", exact: true })
       .click();
@@ -333,8 +364,8 @@ test("empty invitation stays out of editing and panel focus moves smoothly witho
         .isEnabled(),
       true,
     );
-  }
-});
+  });
+}
 async function download(page) {
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download SVG" }).click();

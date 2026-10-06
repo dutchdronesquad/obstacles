@@ -4,8 +4,27 @@ import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import tailwindcss from "@tailwindcss/vite";
 
+const version = process.env.VITE_DESIGNER_VERSION || "dev";
+const commit = process.env.VITE_DESIGNER_COMMIT || "local";
+
 export default defineConfig({
-  plugins: [tailwindcss()],
+  define: {
+    __DESIGNER_VERSION__: JSON.stringify(version),
+    __DESIGNER_COMMIT__: JSON.stringify(commit),
+  },
+  plugins: [
+    tailwindcss(),
+    {
+      name: "designer-version",
+      generateBundle() {
+        this.emitFile({
+          type: "asset",
+          fileName: "version.json",
+          source: JSON.stringify({ version, commit }),
+        });
+      },
+    },
+  ],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   build: {
     rolldownOptions: {
