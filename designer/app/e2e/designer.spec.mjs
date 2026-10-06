@@ -101,7 +101,12 @@ test("build version is visible on desktop and mobile and matches uncached metada
     const version = page.getByLabel("Designer version", { exact: true });
     assert.equal(await version.isVisible(), true);
     assert.equal(await version.textContent(), expected.version);
-    assert.equal(await version.getAttribute("title"), `Commit ${expected.commit}`);
+    assert.equal(await version.getAttribute("title"), `${expected.version} · Commit ${expected.commit}`);
+    const release = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(expected.version);
+    assert.equal(await version.getAttribute("href"), release
+      ? `https://github.com/dutchdronesquad/track-assets/releases/tag/${encodeURIComponent(expected.version)}`
+      : null);
+    assert.equal(await version.getAttribute("target"), release ? "_blank" : null);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.close();
   }
