@@ -1,4 +1,4 @@
-name: Designer
+name: Designer checks and preview
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - "scripts/**"
       - "tests/**"
       - "package*.json"
-      - ".github/workflows/designer.yml"
+      - ".github/workflows/designer*.yml"
       - ".github/ISSUE_TEMPLATE/submit-collection.yml"
   pull_request:
     paths:
@@ -18,10 +18,8 @@ on:
       - "scripts/**"
       - "tests/**"
       - "package*.json"
-      - ".github/workflows/designer.yml"
+      - ".github/workflows/designer*.yml"
       - ".github/ISSUE_TEMPLATE/submit-collection.yml"
-  release:
-    types: [published]
   workflow_dispatch:
 
 permissions:
@@ -32,95 +30,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # No environment or secrets while building and testing artwork or application code.
   build:
-    name: Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    if: github.event_name != 'release' || !github.event.release.prerelease
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      commit: ${{ steps.version.outputs.commit }}
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24.21.0
-          cache: npm
-      - name: Resolve designer version
-        id: version
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: node scripts/designer-version.mjs >> "$GITHUB_OUTPUT"
-      - name: Install dependencies
-        run: npm ci
-      - name: Validate types and run unit tests
-        run: npm run typecheck && npm test
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Build designer and run browser tests
-        env:
-          VITE_DESIGNER_VERSION: ${{ steps.version.outputs.version }}
-          VITE_DESIGNER_COMMIT: ${{ steps.version.outputs.commit }}
-        run: npm run designer:test
-      - name: Validate deployment package
-        run: npx wrangler deploy --config designer/app/wrangler.jsonc --dry-run
-      - name: Upload checked designer
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: designer-site
-          path: designer/app/dist/
-          if-no-files-found: error
-
-  production:
-    name: Deploy Production
-    needs: build
-    if: github.event_name == 'release' && !github.event.release.prerelease
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    concurrency:
-      group: designer-production
-      cancel-in-progress: false
-    environment:
-      name: designer-production
-      url: https://designer.trackdraw.app
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24.21.0
-          cache: npm
-      - name: Install deployment tooling
-        run: npm ci --ignore-scripts
-      - name: Download checked designer
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          name: designer-site
-          path: designer/app/dist/
-      - name: Deploy checked designer
-        run: npx wrangler deploy --config designer/app/wrangler.jsonc --tag "$DESIGNER_VERSION" --message "commit $DESIGNER_COMMIT"
-        env:
-          DESIGNER_VERSION: ${{ needs.build.outputs.version }}
-          DESIGNER_COMMIT: ${{ needs.build.outputs.commit }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      - name: Verify production version over HTTPS
-        env:
-          SITE_URL: https://designer.trackdraw.app
-          DESIGNER_VERSION: ${{ needs.build.outputs.version }}
-          DESIGNER_COMMIT: ${{ needs.build.outputs.commit }}
-        run: node scripts/verify-designer.mjs
+    uses: ./.github/workflows/designer-build.yml
 
   preview:
     name: Deploy Preview
