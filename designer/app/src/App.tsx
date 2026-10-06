@@ -404,6 +404,9 @@ export function App() {
           rel="noreferrer"
         >
           <img src="/assets/trackdraw-logo.svg" alt="TrackDraw" />
+          <span className="app-version" aria-label="Designer version" title={`Commit ${__DESIGNER_COMMIT__}`}>
+            {__DESIGNER_VERSION__}
+          </span>
         </a>
         <div className="document-title">
           <Input

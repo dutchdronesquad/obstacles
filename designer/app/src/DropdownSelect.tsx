@@ -61,8 +61,8 @@ export function DropdownSelect<T extends string | number>({
           aria-label={menuHeading ?? label}
           className={
             menuHeading
-              ? "select-menu-rich w-[270px] max-w-[calc(100vw-24px)]"
-              : "w-[var(--radix-select-trigger-width)]"
+              ? "select-menu-rich w-[270px] max-w-[calc(100vw-24px)] motion-reduce:animate-none!"
+              : "w-[var(--radix-select-trigger-width)] motion-reduce:animate-none!"
           }
         >
           <SelectGroup>
