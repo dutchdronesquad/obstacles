@@ -103,6 +103,7 @@ test("build version is visible on desktop and mobile and matches uncached metada
     assert.equal(await version.textContent(), expected.version);
     assert.equal(await version.getAttribute("title"), `Commit ${expected.commit}`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    await page.close();
   }
 });
 
@@ -167,6 +168,7 @@ test("canvas and empty prompt stay centered when selecting a tool after initiali
         before,
         "Focusing Select must not shift the workspace",
       );
+      await page.close();
     }
   }
 });
@@ -185,11 +187,11 @@ async function upload(
     .waitFor({ state: "attached" });
 }
 
-test("empty invitation stays out of editing and panel focus moves smoothly without changing artwork", async (t) => {
-  for (const viewport of [
-    { width: 1440, height: 1024 },
-    { width: 390, height: 844 },
-  ]) {
+for (const viewport of [
+  { width: 1440, height: 1024 },
+  { width: 390, height: 844 },
+]) {
+  test(`empty invitation stays out of editing and panel focus moves smoothly without changing artwork (${viewport.width}px)`, async (t) => {
     const page = await openPage(t, viewport);
     const prompt = page.getByText("Make it yours.", { exact: true });
     const waitForTransition = () =>
@@ -357,8 +359,8 @@ test("empty invitation stays out of editing and panel focus moves smoothly witho
         .isEnabled(),
       true,
     );
-  }
-});
+  });
+}
 async function download(page) {
   const pending = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download SVG" }).click();
