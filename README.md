@@ -1,18 +1,41 @@
-# Track assets
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/dutchdronesquad/trackdraw/main/public/assets/brand/trackdraw-logo-color-darkbg.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/dutchdronesquad/trackdraw/main/public/assets/brand/trackdraw-logo-color-lightbg.svg">
+    <img alt="TrackDraw" src="https://raw.githubusercontent.com/dutchdronesquad/trackdraw/main/public/assets/brand/trackdraw-logo-color-lightbg.svg" width="320">
+  </picture>
+</p>
 
-<!-- PROJECT SHIELDS -->
-![Project Stage][project-stage-shield]
-![Project Maintenance][maintenance-shield]
-[![License][license-shield]](LICENSE-MIT.txt)
-[![Published collections][collections-shield]][collections-url]
+<h1 align="center">Track assets</h1>
 
-[![Check assets][check-shield]][check-url]
-[![Publish assets][publish-shield]][publish-url]
-[![npm @trackdraw/viewer][npm-shield]][npm-url]
+<p align="center">
+  <strong>Create obstacle artwork for FPV race tracks and share it with your racing community.</strong>
+</p>
 
-Obstacle artwork for FPV race tracks: editable gate and flag sheets, source models and browser-ready textures used by [TrackDraw](https://trackdraw.app) and [TrackDraw Viewer](https://github.com/dutchdronesquad/track-viewer). Collections are grouped by the club, league, team or brand they represent, with their own sources, credits and usage terms.
+<p align="center">
+  <img alt="Project stage" src="https://img.shields.io/badge/project%20stage-beta-orange.svg">
+  <img alt="Project maintenance" src="https://img.shields.io/maintenance/yes/2026.svg">
+  <a href="LICENSE-MIT.txt"><img alt="Software license" src="https://img.shields.io/badge/software%20license-MIT-blue.svg"></a>
+  <a href="https://assets.trackdraw.app/collections.json"><img alt="Published collections" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fassets.trackdraw.app%2Fcollections.json&amp;query=%24.collections.length&amp;label=published%20collections&amp;color=blue"></a>
+</p>
 
-[**Open the Artwork Designer**](https://designer.trackdraw.app) · [Contribute artwork](CONTRIBUTING.md) · [Browse collections](collections/)
+<p align="center">
+  <a href="https://github.com/dutchdronesquad/track-assets/actions/workflows/check.yml"><img alt="Check assets" src="https://github.com/dutchdronesquad/track-assets/actions/workflows/check.yml/badge.svg"></a>
+  <a href="https://github.com/dutchdronesquad/track-assets/actions/workflows/publish.yml"><img alt="Publish assets" src="https://github.com/dutchdronesquad/track-assets/actions/workflows/publish.yml/badge.svg"></a>
+  <a href="https://www.npmjs.com/package/@trackdraw/viewer"><img alt="npm @trackdraw/viewer" src="https://img.shields.io/npm/v/@trackdraw/viewer.svg?label=npm%20%40trackdraw%2Fviewer"></a>
+</p>
+
+<p align="center">
+  <a href="https://designer.trackdraw.app"><strong>Open the Artwork Designer</strong></a>
+  &middot;
+  <a href="CONTRIBUTING.md"><strong>Contribute artwork</strong></a>
+  &middot;
+  <a href="collections/"><strong>Browse collections</strong></a>
+</p>
+
+<p align="center">
+  Editable gate and flag sheets, source models and browser-ready textures used by <a href="https://trackdraw.app">TrackDraw</a> and <a href="https://github.com/dutchdronesquad/track-viewer">TrackDraw Viewer</a>. Collections are grouped by the club, league, team or brand they represent, with their own sources, credits and usage terms.
+</p>
 
 <p align="center">
   <a href="https://designer.trackdraw.app">
@@ -86,16 +109,3 @@ See the [version 1 collection contract](docs/collection-contract.md) and the [DD
 
 - [TrackDraw](https://github.com/dutchdronesquad/trackdraw) — design, share and export FPV race layouts using these obstacle assets.
 - [TrackDraw Viewer](https://github.com/dutchdronesquad/track-viewer) ([npm](https://www.npmjs.com/package/@trackdraw/viewer)) — display and embed TrackDraw layouts in interactive, read-only 2D and 3D views.
-
-<!-- LINKS -->
-[check-shield]: https://github.com/dutchdronesquad/track-assets/actions/workflows/check.yml/badge.svg
-[check-url]: https://github.com/dutchdronesquad/track-assets/actions/workflows/check.yml
-[collections-shield]: https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fassets.trackdraw.app%2Fcollections.json&query=%24.collections.length&label=published%20collections&color=blue
-[collections-url]: https://assets.trackdraw.app/collections.json
-[license-shield]: https://img.shields.io/badge/software%20license-MIT-blue.svg
-[maintenance-shield]: https://img.shields.io/maintenance/yes/2026.svg
-[npm-shield]: https://img.shields.io/npm/v/@trackdraw/viewer.svg?label=npm%20%40trackdraw%2Fviewer
-[npm-url]: https://www.npmjs.com/package/@trackdraw/viewer
-[project-stage-shield]: https://img.shields.io/badge/project%20stage-beta-orange.svg
-[publish-shield]: https://github.com/dutchdronesquad/track-assets/actions/workflows/publish.yml/badge.svg
-[publish-url]: https://github.com/dutchdronesquad/track-assets/actions/workflows/publish.yml
