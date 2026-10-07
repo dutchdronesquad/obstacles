@@ -1177,7 +1177,7 @@ test("live viewer uses CI panel crops, updates artwork and retains transparent f
   await upload(page);
   await page.waitForFunction(
     () =>
-      document.querySelector(".preview-heading [role=status]").textContent ===
+      document.querySelector(".preview-heading [role=status]")?.textContent ===
       "Live",
   );
   await page.waitForTimeout(1000);
@@ -1227,7 +1227,7 @@ test("live viewer uses CI panel crops, updates artwork and retains transparent f
   await page.getByLabel("Background", { exact: true }).fill("#ef4444");
   await page.waitForFunction(
     () =>
-      document.querySelector(".preview-heading [role=status]").textContent ===
+      document.querySelector(".preview-heading [role=status]")?.textContent ===
       "Live",
   );
   await page.waitForTimeout(1000);
@@ -1277,7 +1277,7 @@ test("live viewer uses CI panel crops, updates artwork and retains transparent f
   await upload(page);
   await page.waitForFunction(
     () =>
-      document.querySelector(".preview-heading [role=status]").textContent ===
+      document.querySelector(".preview-heading [role=status]")?.textContent ===
       "Live",
   );
   await page.waitForTimeout(1000);
@@ -1287,7 +1287,7 @@ test("live viewer uses CI panel crops, updates artwork and retains transparent f
   await upload(page);
   await page.waitForFunction(
     () =>
-      document.querySelector(".preview-heading [role=status]").textContent ===
+      document.querySelector(".preview-heading [role=status]")?.textContent ===
       "Live",
   );
   await page.waitForTimeout(1000);
