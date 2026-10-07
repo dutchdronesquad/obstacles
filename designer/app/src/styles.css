@@ -173,8 +173,8 @@ a.app-version:focus-visible {
 }
 .template-picker {
   position: relative;
-  flex: 0 0 168px;
-  min-width: 168px;
+  flex: 0 0 200px;
+  min-width: 200px;
   margin-right: 6px;
 }
 .select-control {
@@ -1073,8 +1073,8 @@ kbd {
     display: none;
   }
   .template-picker {
-    flex-basis: 143px;
-    min-width: 143px;
+    flex-basis: 168px;
+    min-width: 168px;
     margin-right: 0;
   }
   .select-rich .select-trigger {
