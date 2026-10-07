@@ -74,7 +74,7 @@ async function openPage(
     await page.close();
     assert.deepEqual(errors, []);
   });
-  await page.goto(target);
+  await page.goto(target, { timeout: 30000 });
   await page.getByRole("application", { name: "Artwork canvas" }).waitFor();
   await page.waitForFunction(
     () =>
@@ -424,69 +424,85 @@ test("Cloudflare serves SPA routes with CSP and caches only fingerprinted assets
 });
 
 test("desktop and mobile submit a checked download and open the prefilled GitHub form", async (t) => {
-  for (const viewport of [
-    { width: 1440, height: 1024 },
-    { width: 390, height: 844 },
-  ]) {
-    const page = await openPage(t, viewport);
-    await draw(page);
-    const original = (await download(page)).design;
-    await page
-      .context()
-      .route("https://github.com/**", (route) =>
-        route.fulfill({ body: "Submission form" }),
+  for (const template of ["gate-standard-v1", "gate-championship-v1"]) {
+    for (const viewport of [
+      { width: 1440, height: 1024 },
+      { width: 390, height: 844 },
+    ]) {
+      const page = await openPage(t, viewport);
+      if (template === "gate-championship-v1") {
+        await page
+          .getByRole("combobox", { name: "Obstacle", exact: true })
+          .click();
+        await page
+          .getByRole("option", { name: "Championship gate", exact: true })
+          .click();
+      }
+      await draw(page);
+      const original = (await download(page)).design;
+      assert.equal(original.template, template);
+      await page
+        .context()
+        .route("https://github.com/**", (route) =>
+          route.fulfill({ body: "Submission form" }),
+        );
+      await page
+        .getByRole("button", { name: "Submit artwork", exact: true })
+        .click();
+      const dialog = page.getByRole("dialog", {
+        name: "Submit obstacle artwork",
+      });
+      const submit = dialog.getByRole("button", {
+        name: "Download SVG and open GitHub",
+      });
+      assert.equal(await submit.isDisabled(), true);
+      await dialog
+        .getByLabel("Organization", { exact: true })
+        .fill("Racing & 東京");
+      await dialog.getByLabel("Short name (optional)").fill("racing-tokyo");
+      const usage = "In TrackDraw, including offline track exports";
+      await dialog
+        .getByRole("combobox", { name: "Usage", exact: true })
+        .click();
+      await page.getByRole("option", { name: usage, exact: true }).click();
+      const popupPending = page.waitForEvent("popup");
+      const downloadPending = page.waitForEvent("download");
+      await submit.click();
+      const popup = await popupPending;
+      await popup.waitForLoadState();
+      const destination = new URL(popup.url());
+      assert.equal(
+        destination.searchParams.get("organization"),
+        "Racing & 東京",
       );
-    await page
-      .getByRole("button", { name: "Submit artwork", exact: true })
-      .click();
-    const dialog = page.getByRole("dialog", {
-      name: "Submit obstacle artwork",
-    });
-    const submit = dialog.getByRole("button", {
-      name: "Download SVG and open GitHub",
-    });
-    assert.equal(await submit.isDisabled(), true);
-    await dialog
-      .getByLabel("Organization", { exact: true })
-      .fill("Racing & 東京");
-    await dialog.getByLabel("Short name (optional)").fill("racing-tokyo");
-    const usage = "In TrackDraw, including offline track exports";
-    await dialog.getByRole("combobox", { name: "Usage", exact: true }).click();
-    await page.getByRole("option", { name: usage, exact: true }).click();
-    const popupPending = page.waitForEvent("popup");
-    const downloadPending = page.waitForEvent("download");
-    await submit.click();
-    const popup = await popupPending;
-    await popup.waitForLoadState();
-    const destination = new URL(popup.url());
-    assert.equal(destination.searchParams.get("organization"), "Racing & 東京");
-    assert.equal(destination.searchParams.get("slug"), "racing-tokyo");
-    assert.equal(destination.searchParams.get("usage"), usage);
-    assert.equal(
-      destination.searchParams.get("template"),
-      "submit-collection.yml",
-    );
-    const result = await downloadPending;
-    const file = path.join(directory, `${crypto.randomUUID()}.svg`);
-    await result.saveAs(file);
-    const svg = await readFile(file, "utf8");
-    assert.deepEqual(parseSheet(templateDefinitions, svg), original);
-    await checkDownload({ svg, name: result.suggestedFilename() });
-    await popup.close();
-    assert.equal(await dialog.getByRole("status").isVisible(), true);
-    await dialog.getByRole("button", { name: "Close submission" }).focus();
-    await page.keyboard.press("r");
-    assert.equal(await dialog.isVisible(), true);
-    await page.keyboard.press("Escape");
-    await dialog.waitFor({ state: "detached" });
-    assert.equal(await dialog.count(), 0);
-    assert.deepEqual((await download(page)).design, original);
-    assert.equal(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth > innerWidth,
-      ),
-      false,
-    );
+      assert.equal(destination.searchParams.get("slug"), "racing-tokyo");
+      assert.equal(destination.searchParams.get("usage"), usage);
+      assert.equal(
+        destination.searchParams.get("template"),
+        "submit-collection.yml",
+      );
+      const result = await downloadPending;
+      const file = path.join(directory, `${crypto.randomUUID()}.svg`);
+      await result.saveAs(file);
+      const svg = await readFile(file, "utf8");
+      assert.deepEqual(parseSheet(templateDefinitions, svg), original);
+      await checkDownload({ svg, name: result.suggestedFilename() });
+      await popup.close();
+      assert.equal(await dialog.getByRole("status").isVisible(), true);
+      await dialog.getByRole("button", { name: "Close submission" }).focus();
+      await page.keyboard.press("r");
+      assert.equal(await dialog.isVisible(), true);
+      await page.keyboard.press("Escape");
+      await dialog.waitFor({ state: "detached" });
+      assert.equal(await dialog.count(), 0);
+      assert.deepEqual((await download(page)).design, original);
+      assert.equal(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth > innerWidth,
+        ),
+        false,
+      );
+    }
   }
 });
 async function draw(page, tool = "Rectangle (R)") {
@@ -1255,6 +1271,18 @@ test("live viewer uses CI panel crops, updates artwork and retains transparent f
     });
   }
   await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
+  await page
+    .getByRole("option", { name: "Championship gate", exact: true })
+    .click();
+  await upload(page);
+  await page.waitForFunction(
+    () =>
+      document.querySelector(".preview-heading [role=status]").textContent ===
+      "Live",
+  );
+  await page.waitForTimeout(1000);
+  await comparePanels("gate-championship-v1");
+  await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
   await page.getByRole("option", { name: "Corner flag", exact: true }).click();
   await upload(page);
   await page.waitForFunction(
@@ -1521,3 +1549,96 @@ test("shared controls restore focus and keep typing and menus separate from canv
     );
   }
 });
+
+for (const viewport of [
+  { width: 1440, height: 1024 },
+  { width: 390, height: 844 },
+]) {
+  test(`Championship edit, panel focus, layers, undo, 3D and reopen (${viewport.width}px)`, async (t) => {
+    const page = await openPage(t, viewport);
+    await page.getByRole("combobox", { name: "Obstacle", exact: true }).click();
+    assert.match(
+      await page
+        .getByRole("option", { name: "Standard gate", exact: true })
+        .textContent(),
+      /5 × 5 ft/,
+    );
+    assert.match(
+      await page
+        .getByRole("option", { name: "Championship gate", exact: true })
+        .textContent(),
+      /7 × 6 ft/,
+    );
+    await page.getByRole("listbox", { name: "Obstacle type" }).waitFor();
+    await page.waitForTimeout(200);
+    if (process.env.DESIGNER_SCREENSHOTS)
+      await page.screenshot({
+        path: path.join(
+          process.env.DESIGNER_SCREENSHOTS,
+          `championship-picker-${viewport.width}.png`,
+        ),
+      });
+    await page
+      .getByRole("option", { name: "Championship gate", exact: true })
+      .click();
+    await page
+      .locator(".status")
+      .filter({ hasText: "New sheet started" })
+      .waitFor({ state: "attached" });
+    await page
+      .getByRole("listbox", { name: "Obstacle type" })
+      .waitFor({ state: "detached" });
+    await page.waitForTimeout(250);
+    if (process.env.DESIGNER_SCREENSHOTS)
+      await page.screenshot({
+        path: path.join(
+          process.env.DESIGNER_SCREENSHOTS,
+          `championship-sheet-${viewport.width}.png`,
+        ),
+      });
+    await upload(page);
+    const before = (await download(page)).design;
+    assert.equal(before.template, "gate-championship-v1");
+    await draw(page);
+    const edited = await download(page);
+    assert.ok(edited.design.artwork.length > before.artwork.length);
+    await page.getByRole("button", { name: "Undo", exact: true }).click();
+    await page
+      .locator(".status")
+      .filter({ hasText: "Change undone" })
+      .waitFor({ state: "attached" });
+    assert.deepEqual((await download(page)).design, before);
+    await page.getByRole("button", { name: "Redo", exact: true }).click();
+    await page.waitForTimeout(150);
+    assert.deepEqual((await download(page)).design, edited.design);
+    await page.getByRole("button", { name: "Right post", exact: true }).click();
+    await page.getByRole("button", { name: "3D view", exact: true }).click();
+    await page
+      .locator(".preview-viewer canvas[data-engine]")
+      .waitFor({ timeout: 30000 });
+    await page.waitForTimeout(1500);
+    if (process.env.DESIGNER_SCREENSHOTS)
+      await page.screenshot({
+        path: path.join(
+          process.env.DESIGNER_SCREENSHOTS,
+          `championship-3d-${viewport.width}.png`,
+        ),
+      });
+    await page.getByRole("button", { name: "2D view", exact: true }).click();
+    await page
+      .getByLabel("Open a saved sheet", { exact: true })
+      .setInputFiles(fixture("championship.svg", "image/svg+xml", edited.svg));
+    await page
+      .locator(".status")
+      .filter({ hasText: "Sheet reopened" })
+      .waitFor({ state: "attached" });
+    assert.deepEqual((await download(page)).design, edited.design);
+    await checkDownload(edited);
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > innerWidth,
+      ),
+      false,
+    );
+  });
+}

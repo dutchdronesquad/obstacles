@@ -68,10 +68,10 @@ export const renderTargets: Record<string, RenderTarget> = {
       thick: 0.2,
       color: "#3b82f6",
     }),
-    // The current renderer draws the right post from the left image, turned 180°.
     files: {
-      left: "large-side-panel-multigp.webp",
-      top: "large-top-multigp.webp",
+      left: "championship-left.webp",
+      right: "championship-right.webp",
+      top: "championship-top.webp",
     },
     views: [
       [0, "front"],
@@ -130,8 +130,47 @@ export function renderDesign(template: string): ViewerDesign {
     title: template,
     updatedAt: "2026-01-01T00:00:00.000Z",
     field: { width, height: 5, origin: "tl", gridStep: 1, ppm: 20 },
+    ...(template === "gate-championship-v1"
+      ? {
+          // Transient preview resolution: panels are supplied by the local asset resolver.
+          // No portable snapshot or downloaded SVG contains these preview references.
+          appearances: [
+            {
+              reference: {
+                source: "registry",
+                collectionId: "preview",
+                textureId: "championship",
+                templateId: template,
+              },
+              name: "Championship preview",
+              collectionName: "Local artwork",
+              attribution: "Local artwork",
+              usage: {
+                terms: "Local preview only",
+                portable: "not-granted" as const,
+              },
+              panels: {
+                left: "/assets/registry/preview/championship-left.webp",
+                right: "/assets/registry/preview/championship-right.webp",
+                top: "/assets/registry/preview/championship-top.webp",
+              },
+              assets: [],
+            },
+          ],
+        }
+      : {}),
     shapes: target.views.map(([rotation], i) => ({
       ...structuredClone(target.shape),
+      ...(template === "gate-championship-v1"
+        ? {
+            appearance: {
+              source: "registry",
+              collectionId: "preview",
+              textureId: "championship",
+              templateId: template,
+            },
+          }
+        : {}),
       id: `view-${i}`,
       x: 0.5 + target.spacing * (i + 0.5),
       y: 2.5,

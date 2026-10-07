@@ -98,3 +98,18 @@ test('each template sheet becomes a generated texture set in the manifest view',
   files.set('collections/org/source/Main Gate.svg', Buffer.from(sheet));
   await assert.rejects(withGeneratedTextures([...files.keys()], file => files.get(file)), /file name must use lowercase letters, digits and hyphens/);
 });
+
+
+test('Championship sheet exports independent correctly sized panels without rotating the right', async () => {
+  const sheet = (await readFile('templates/gate-championship-v1.svg', 'utf8')).replace('</g>', '<rect x="850" y="200" width="150" height="30" fill="#ff0000"/></g>');
+  const { template, panels } = await exportSheet(sheet, 'championship');
+  assert.equal(template, 'gate-championship-v1');
+  for (const [panel, dimensions] of Object.entries({ left: [450, 1800], right: [450, 1800], top: [3000, 600] })) {
+    const image = await raw(panels[panel]);
+    assert.deepEqual([image.info.width, image.info.height], dimensions);
+    assert.equal((await sharp(panels[panel]).metadata()).hasAlpha, false);
+  }
+  const right = await raw(panels.right);
+  assert.deepEqual(pixel(right, 225, 15), [255, 0, 0, 255]);
+  assert.deepEqual(pixel(right, 225, 1785), [248, 250, 252, 255]);
+});

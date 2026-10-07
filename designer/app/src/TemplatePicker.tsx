@@ -8,7 +8,14 @@ import { DropdownSelect } from "./DropdownSelect.tsx";
 const preview = (id: string) =>
   `data:image/svg+xml,${encodeURIComponent(withoutGuides(renderSheet(templates, sheets[id], createDesign(templates, id))))}`;
 const choices = [
-  { value: "gate-standard-v1", description: "Left, top and right panels" },
+  {
+    value: "gate-standard-v1",
+    description: "5 × 5 ft opening · Left, top and right panels",
+  },
+  {
+    value: "gate-championship-v1",
+    description: "7 × 6 ft opening · Left, top and right panels",
+  },
   { value: "corner-flag-v1", description: "Front and back artwork" },
 ].map((choice) => ({
   ...choice,

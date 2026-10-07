@@ -6,17 +6,17 @@ Any racing organization (a club, chapter, league, team or brand) can add artwork
 
 - **Rights.** You need permission to publish the artwork, including any logos. The repository's MIT license covers only the scripts and tests, not artwork. The submission form records your organization as author and rights holder; in the repository you write them in your manifest.
 - **Offline exports.** Decide whether TrackDraw may include your artwork in offline or portable track exports. In the form that is one choice; in a manifest, set `usage.portable` to `allowed` only when you grant that in `usage.terms`, otherwise `not-granted`.
-- **Templates.** Check which templates have an editable sheet in [templates/](templates/README.md). Today that is `gate-standard-v1` (standard 5x5 gate) and `corner-flag-v1` (corner flag).
+- **Templates.** Check which templates have an editable sheet in [templates/](templates/README.md). Today that is `gate-standard-v1` (Standard 5 × 5 ft gate), `gate-championship-v1` (Championship 7 × 6 ft gate) and `corner-flag-v1` (corner flag).
 
 ## The easy way: submit through an issue
 
 No git, Node.js or command line needed.
 
-1. **Design in your browser.** Open the [artwork designer](https://designer.trackdraw.app), choose a standard gate or corner flag, add your artwork and check the 3D preview. Download one SVG per texture set to keep an editable copy.
+1. **Design in your browser.** Open the [artwork designer](https://designer.trackdraw.app), choose a Standard 5 × 5 ft gate, Championship 7 × 6 ft gate or corner flag, add your artwork and check the 3D preview. Download one SVG per texture set to keep an editable copy.
 2. **Submit artwork.** The designer's **Submit artwork** button asks for your organization's name, an optional short name for web addresses (such as `dds`) and where the artwork may be used. **Download SVG and open GitHub** downloads the current sheet and opens the submission form with those details filled in. A GitHub account is required.
 3. **Attach and confirm.** Add the downloaded `.svg` files under **Template sheets**, check the details and confirm you have permission to publish the artwork. The upload field accepts SVG only; the bot checks template structure and a 5 MB limit per sheet, with at most 10 sheets. Credits and usage terms are filled in for you; a maintainer can adjust them in the pull request.
 
-Prefer a desktop SVG editor? Download [`gate-standard-v1.svg`](templates/gate-standard-v1.svg) or [`corner-flag-v1.svg`](templates/corner-flag-v1.svg), draw on the Artwork layer in [Inkscape](https://inkscape.org/), then [open the submission form](https://github.com/dutchdronesquad/track-assets/issues/new?template=submit-collection.yml). The [template guide](templates/README.md) explains orientation, safe areas and what to avoid.
+Prefer a desktop SVG editor? Download [`gate-standard-v1.svg`](templates/gate-standard-v1.svg) [`gate-championship-v1.svg`](templates/gate-championship-v1.svg) or [`corner-flag-v1.svg`](templates/corner-flag-v1.svg), draw on the Artwork layer in [Inkscape](https://inkscape.org/), then [open the submission form](https://github.com/dutchdronesquad/track-assets/issues/new?template=submit-collection.yml). The [template guide](templates/README.md) explains orientation, safe areas and what to avoid.
 
 A maintainer checks the submission and adds the `accepted-submission` label. A bot then creates the collection, opens a pull request and links it in your issue; the pull request shows 3D renders of your artwork in TrackDraw's viewer. If something needs fixing, the bot explains it in the issue.
 
