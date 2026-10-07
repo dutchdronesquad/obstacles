@@ -37,7 +37,7 @@ The Championship sheet uses the existing catalog's 1.5 × 6 ft side panels and 1
 
 The same front-view convention applies: left reads bottom → top, right top → bottom, with independent panel artwork and no export rotation or mirroring. The dashed safe areas keep important artwork away from the frame tube: 0.12 ft on the outer side edges and top edge, 0.08 ft on the inner/bottom side edges, and 0.12 ft on the top panel's ends. They are conservative rendering guides, not manufacturer bleed or seam specifications. The unprinted back uses one solid colour.
 
-Club artwork requires the schema/viewer Championship registry support in the companion change before deploying this designer. Release schema and viewer first, then update consumer dependencies; existing MultiGP artwork and its Race Timing normal/red variants remain the fallback.
+Club Championship artwork requires schema/viewer 1.0.4 or newer. Existing MultiGP artwork and its Race Timing normal/red variants remain the fallback.
 
 ### `corner-flag-v1`
 
