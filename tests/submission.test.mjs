@@ -128,3 +128,15 @@ test('later fields cannot override earlier ones, and names are neutralised', asy
   assert.match(odd.ids[0], /^[a-z0-9]+(?:-[a-z0-9]+)*$/);
   assert.ok(odd.ids[0].length <= 60);
 });
+
+
+test('Championship submission keeps the existing template ID and independent panel mapping', async () => {
+  const submission = buildSubmission({ values: parseIssueForm(body()), sheets: [await sheet('gate-championship-v1')], issue, existing });
+  assert.deepEqual(submission.ids, ['championship-gate']);
+  const files = new Map([...submission.files].map(([file, content]) => [file, Buffer.from(content)]));
+  const result = await checkCollections([...files.keys()], file => files.get(file));
+  const [entry] = JSON.parse(result.view.read('collections/example-racing/manifest.json')).textures;
+  assert.equal(entry.template, 'gate-championship-v1');
+  assert.notEqual(entry.panels.left, entry.panels.right);
+  assert.equal(result.checked, 3);
+});

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" width="1000" height="800" viewBox="0 0 1000 800" data-template="gate-championship-v1">
+  <title>Championship gate editable sheet: 7 × 6 ft opening (100 units = 1 ft)</title>
+  <defs><marker id="guide-arrow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#db2777"/></marker>
+  </defs>
+  <g id="artwork" inkscape:groupmode="layer" inkscape:label="Artwork">
+    <rect id="base-left" x="0" y="200" width="150" height="600" fill="#f8fafc"/>
+    <rect id="base-right" x="850" y="200" width="150" height="600" fill="#f8fafc"/>
+    <rect id="base-top" x="0" y="0" width="1000" height="200" fill="#202e5d"/>
+  </g>
+  <g id="guides" inkscape:groupmode="layer" inkscape:label="Guides (never exported)" sodipodi:insensitive="true" font-family="sans-serif" fill="#0f172a">
+    <rect x="150" y="200" width="700" height="600" fill="#e2e8f0"/>
+    <rect x="1" y="201" width="148" height="598" fill="none" stroke="#0891b2" stroke-width="2"/>
+    <rect x="12" y="208" width="130" height="584" fill="none" stroke="#db2777" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <rect x="851" y="201" width="148" height="598" fill="none" stroke="#0891b2" stroke-width="2"/>
+    <rect x="858" y="208" width="130" height="584" fill="none" stroke="#db2777" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <rect x="1" y="1" width="998" height="198" fill="none" stroke="#0891b2" stroke-width="2"/>
+    <rect x="12" y="12" width="976" height="180" fill="none" stroke="#db2777" stroke-width="1.5" stroke-dasharray="6 4"/>
+    <g fill="#0891b2" font-size="16" font-weight="bold" text-anchor="middle">
+      <text x="500" y="40">TOP · slot "top" · 10 × 2 ft · texture top edge ↑</text>
+      <text transform="translate(35 500) rotate(-90)">LEFT · slot "left" · 1.5 × 6 ft</text>
+      <text transform="translate(965 500) rotate(90)">RIGHT · slot "right" · 1.5 × 6 ft</text>
+    </g>
+    <g fill="none" stroke="#db2777" stroke-width="3" marker-end="url(#guide-arrow)"><path d="M 100 660 V 340"/><path d="M 900 340 V 660"/></g>
+    <g fill="#db2777" font-size="12" text-anchor="middle">
+      <text transform="translate(120 500) rotate(-90)">recommended reading direction</text>
+      <text transform="translate(880 500) rotate(90)">recommended reading direction</text>
+      <text x="500" y="180">dashed line = safe area; the frame tube covers the outer edges</text>
+    </g>
+    <g font-size="18" text-anchor="middle">
+      <text x="500" y="310" font-size="24" font-weight="bold">FRONT VIEW · gate-championship-v1</text>
+      <text x="500" y="346">Opening 7 × 6 ft · not exported</text>
+      <text x="500" y="408">Drawn as seen when facing the printed side.</text>
+      <text x="500" y="436">Left and right artwork are exported independently.</text>
+      <text x="500" y="500">Only the front is printed. Use data-back-color</text>
+      <text x="500" y="528">for one solid back colour (default white and navy).</text>
+      <text x="500" y="592">No extra rotation or mirroring is needed.</text>
+      <text x="500" y="620">Keep artwork on Artwork. Convert text to paths.</text>
+      <text x="500" y="724" font-size="14">Rendering template, not a certified manufacturing pattern.</text>
+      <text x="500" y="748" font-size="14">Check physical panels, seams and print bleed with your printer.</text>
+    </g>
+  </g>
+</svg>

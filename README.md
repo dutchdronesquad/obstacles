@@ -45,7 +45,7 @@
 
 ## Create obstacle artwork
 
-The [TrackDraw Artwork Designer](https://designer.trackdraw.app) runs in your browser. Add logos, choose colours, draw and edit vectors, arrange artwork per panel and check the live 3D preview. It currently supports a standard 5×5 gate and a corner flag. No installation or TrackDraw account is needed.
+The [TrackDraw Artwork Designer](https://designer.trackdraw.app) runs in your browser. Add logos, choose colours, draw and edit vectors, arrange artwork per panel and check the live 3D preview. It currently supports the Standard 5 × 5 ft gate, Championship 7 × 6 ft gate and corner flag. No installation or TrackDraw account is needed.
 
 1. **Design your sheet.** Choose an obstacle and add your organization's artwork.
 2. **Save an editable copy.** Download the SVG before leaving; open it in the designer later to continue editing. Your files stay in your browser, and the designer does not autosave them.

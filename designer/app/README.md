@@ -1,6 +1,6 @@
 # Artwork designer app
 
-Browser app at [designer.trackdraw.app](https://designer.trackdraw.app), built with React, TypeScript, Vite, Fabric and [`designer/core`](../core/README.md). It uses the repository's shared template definitions and SVG sheets for the standard gate and corner flag. You can also run it locally.
+Browser app at [designer.trackdraw.app](https://designer.trackdraw.app), built with React, TypeScript, Vite, Fabric and [`designer/core`](../core/README.md). It uses the repository's shared template definitions and SVG sheets for the Standard 5 × 5 ft gate, Championship 7 × 6 ft gate and corner flag. You can also run it locally.
 
 From the repository root, with Node.js 24:
 

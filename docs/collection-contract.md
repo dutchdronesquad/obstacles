@@ -41,13 +41,13 @@ These template IDs identify existing artwork slots, not universal compatibility 
 | Template | Required panels | Consumer mapping |
 | --- | --- | --- |
 | `gate-standard-v1` | `left`, `right`, `top` | Existing standard gate panel-frame mapping; each source texture top edge faces the panel top. `left` is the post on the viewer's left when facing the printed front. Only the front is textured. |
-| `gate-championship-v1` | `left`, `right`, `top` | Existing championship mapping: left top edge faces top; right top edge faces bottom; top faces top. Existing artwork shares the side image. |
+| `gate-championship-v1` | `left`, `right`, `top` | Club sheets use independent front-view `left`, `right`, `top` artwork, with each texture top edge facing top. The original MultiGP `championship-gate` and `championship-gate-red` sets share one side image and retain the catalog right-face 180° rotation through the schema adapter. |
 | `corner-flag-v1` | `front`, `back` | Existing corner-marker front/back planes. Each side is drawn as seen from that side: the pole runs along the left edge of `front` and the right edge of `back`. No additional consumer image mirroring. |
 | `hurdle-v1` | `front` | Existing hurdle banner texture slot, same orientation as the current catalog. |
 
 Gate templates texture only the front. `backColor` asks consumers to paint every back face of that texture set in one solid colour; without it they keep their default panel colours. Consumers that do not support it yet ignore it; TrackDraw support is tracked in trackdraw#886.
 
-Source panel names refer to renderer texture slots. Consumers must not infer extra flips from filenames or legacy artwork notes. The `gate-standard-v1` and `corner-flag-v1` orientations were verified in TrackDraw's 3D view; the [reference images](../templates/reference/) show the front, back and rotated results. A different geometry, panel mapping or orientation requires a new template ID/version, not a silent reinterpretation.
+Source panel names refer to renderer texture slots. Championship SVGs use the same front-view convention as standard-gate sheets; consumers must support the schema Championship adapter before offering them. Consumers must not infer extra flips from filenames or legacy artwork notes. The `gate-standard-v1` and `corner-flag-v1` orientations were verified in TrackDraw's 3D view; the [reference images](../templates/reference/) show the front, back and rotated results. A different geometry, panel mapping or orientation requires a new template ID/version, not a silent reinterpretation.
 
 ## Discovery and publication
 

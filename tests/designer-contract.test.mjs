@@ -9,7 +9,7 @@ import sharp from 'sharp';
 import { checkCollections } from '../scripts/check-collections.mjs';
 import { templateDefinitions } from '../scripts/template-definitions.mjs';
 import { exportSheet } from '../scripts/templates.mjs';
-import { createDesign, prepareLogo, renderSheet } from '../designer/core/src/index.ts';
+import { createDesign, prepareLogo, renderSheet, parseSheet } from '../designer/core/src/index.ts';
 
 const red = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><rect width="200" height="100" fill="#ff0000"/></svg>';
 const manifest = Buffer.from(JSON.stringify({ schemaVersion: 1, id: 'club', name: 'Club', status: 'example', author: 'Club', attribution: 'Original', usage: { terms: 'Test', portable: 'not-granted' } }));
@@ -49,6 +49,8 @@ for (const template of editable) {
     assert.equal(result.sources, Object.keys(designs).length);
     assert.equal(result.checked, Object.keys(designs).length * panelCount);
     const entries = JSON.parse(result.view.read('collections/club/manifest.json')).textures;
+    assert.ok(entries.every(entry => entry.template === template));
+    for (const design of Object.values(designs)) assert.deepEqual(parseSheet(templateDefinitions, renderSheet(templateDefinitions, templateSvg, design)), design);
     assert.equal(entries.find(entry => entry.id === 'svg-logo').name, 'Club "main" & co');
     if (templateDefinitions[template].unprintedBack) assert.equal(entries.find(entry => entry.id === 'blank').backColor, designs.blank.colors.back);
   });
@@ -84,4 +86,19 @@ test('a logo hiding live text never becomes a sheet, however the design arrives'
   const design = { ...createDesign(templateDefinitions, 'gate-standard-v1'), logo: { kind: 'svg', data: Buffer.from(outer).toString('base64'), width: 200, height: 100 } };
   const templateSvg = await readFile('templates/gate-standard-v1.svg', 'utf8');
   assert.throws(() => renderSheet(templateDefinitions, templateSvg, design), /embeds another SVG/);
+});
+
+
+test('Championship artwork publishes discoverable template identity and all independent panel URLs', async () => {
+  const template = 'gate-championship-v1';
+  const svg = renderSheet(templateDefinitions, await readFile(`templates/${template}.svg`, 'utf8'), createDesign(templateDefinitions, template));
+  const files = new Map([['collections/club/manifest.json', Buffer.from(manifest.toString().replace('"example"', '"published"'))], ['collections/club/source/championship.svg', Buffer.from(svg)]]);
+  const result = await checkCollections([...files.keys()], file => files.get(file));
+  const index = JSON.parse(result.published.find(asset => asset.key === 'collections.json').bytes);
+  assert.equal(index.collections[0].id, 'club');
+  const published = JSON.parse(result.published.find(asset => asset.key === 'club/manifest.json').bytes);
+  const [entry] = published.textures;
+  assert.equal(entry.template, template);
+  assert.deepEqual(entry.panels, { left: '/club/championship-left.webp', right: '/club/championship-right.webp', top: '/club/championship-top.webp' });
+  for (const path of Object.values(entry.panels)) assert.ok(result.published.some(asset => asset.key === path.slice(1)));
 });
