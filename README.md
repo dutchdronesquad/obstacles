@@ -10,16 +10,32 @@
 [![Publish assets][publish-shield]][publish-url]
 [![npm @trackdraw/viewer][npm-shield]][npm-url]
 
-Source models, artwork and browser-ready textures for drone racing obstacles, together with the scripts used to maintain them. Assets are grouped by the organization or brand they represent. Each collection documents its sources and maintenance workflow in its own directory.
+Obstacle artwork for FPV race tracks: editable gate and flag sheets, source models and browser-ready textures used by [TrackDraw](https://trackdraw.app) and [TrackDraw Viewer](https://github.com/dutchdronesquad/track-viewer). Collections are grouped by the club, league, team or brand they represent, with their own sources, credits and usage terms.
 
-Want to add your organization's obstacle artwork? Start with the [browser artwork designer](https://designer.trackdraw.app), then submit the downloaded SVG through its Submit artwork button. See [CONTRIBUTING.md](CONTRIBUTING.md) and the [texture templates](templates/README.md) for the review flow and other editing options.
+[**Open the Artwork Designer**](https://designer.trackdraw.app) · [Contribute artwork](CONTRIBUTING.md) · [Browse collections](collections/)
 
-The designer lets you create gate and flag sheets with logos, colours, free vector drawing, placement per panel and a live 3D preview. Everything stays in your browser until you attach your sheet on GitHub. You can also [run it locally](designer/app/README.md) with `npm run designer:dev` after installing dependencies.
+<p align="center">
+  <a href="https://designer.trackdraw.app">
+    <img alt="TrackDraw Artwork Designer editing a DDS gate sheet, with vector tools, panel controls and artwork layers" src="docs/designer/layers-after.jpg" width="800">
+  </a>
+</p>
 
-## Related repositories
+## Create obstacle artwork
 
-- [TrackDraw](https://github.com/dutchdronesquad/trackdraw) — the browser-based FPV track designer that uses these assets to represent obstacles in track layouts.
-- [TrackDraw Viewer](https://github.com/dutchdronesquad/track-viewer) ([npm](https://www.npmjs.com/package/@trackdraw/viewer)) — the standalone 2D and 3D viewer that uses these catalog textures to display TrackDraw tracks in other websites and applications.
+The [TrackDraw Artwork Designer](https://designer.trackdraw.app) runs in your browser. Add logos, choose colours, draw and edit vectors, arrange artwork per panel and check the live 3D preview. It currently supports a standard 5×5 gate and a corner flag. No installation or TrackDraw account is needed.
+
+1. **Design your sheet.** Choose an obstacle and add your organization's artwork.
+2. **Save an editable copy.** Download the SVG before leaving; open it in the designer later to continue editing. Your files stay in your browser, and the designer does not autosave them.
+3. **Submit for review.** Use **Submit artwork** to download your sheet and open the GitHub submission form. Attach the SVG and confirm the artwork's rights and usage terms there. Submission requires a GitHub account; a maintainer reviews it before publication.
+
+See [Contributing](CONTRIBUTING.md) for the complete submission flow, or use the [SVG templates](templates/README.md) in your own vector editor. New obstacle shapes belong in TrackDraw; this repository supplies artwork for supported shapes.
+
+## What's in this repository
+
+- [Collections](collections/) — artwork, source models, credits and collection manifests.
+- [Templates](templates/README.md) — editable SVG sheets and panel layout guidance.
+- [Artwork Designer](designer/app/README.md) — the browser tool and local development instructions.
+- [Scripts](scripts/) — checks, texture generation, previews and publication tooling.
 
 ## License and attribution
 
@@ -65,6 +81,11 @@ Runtime filenames retain their original case. Consumers need no API key. Runtime
 ## Collection metadata
 
 See the [version 1 collection contract](docs/collection-contract.md) and the [DDS template pilot](collections/dds/README.md). Run `npm run assets:check` to validate manifests, images and template sheets, and `npm run textures:build` to write the exact publishable files to `build/`. Published collections are discoverable at `/collections.json`; examples remain in Git only.
+
+## Related repositories
+
+- [TrackDraw](https://github.com/dutchdronesquad/trackdraw) — design, share and export FPV race layouts using these obstacle assets.
+- [TrackDraw Viewer](https://github.com/dutchdronesquad/track-viewer) ([npm](https://www.npmjs.com/package/@trackdraw/viewer)) — display and embed TrackDraw layouts in interactive, read-only 2D and 3D views.
 
 <!-- LINKS -->
 [check-shield]: https://github.com/dutchdronesquad/track-assets/actions/workflows/check.yml/badge.svg
