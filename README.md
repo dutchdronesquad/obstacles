@@ -108,4 +108,4 @@ See the [version 1 collection contract](docs/collection-contract.md) and the [DD
 ## Related repositories
 
 - [TrackDraw](https://github.com/dutchdronesquad/trackdraw) — design, share and export FPV race layouts using these obstacle assets.
-- [TrackDraw Viewer](https://github.com/dutchdronesquad/track-viewer) ([npm](https://www.npmjs.com/package/@trackdraw/viewer)) — display and embed TrackDraw layouts in interactive, read-only 2D and 3D views. The [live demo](https://viewer.trackdraw.app/) shows website integrations and obstacle previews using the shared catalog; [developer examples](https://viewer.trackdraw.app/?mode=develop) provide integration code.
+- [TrackDraw Viewer](https://github.com/dutchdronesquad/track-viewer) ([npm](https://www.npmjs.com/package/@trackdraw/viewer)) — display and embed TrackDraw layouts in interactive, read-only 2D and 3D views. The [live demo](https://viewer.trackdraw.app/) shows website integrations and obstacle previews using the shared catalog; [developer examples](https://viewer.trackdraw.app/develop) provide integration code.
