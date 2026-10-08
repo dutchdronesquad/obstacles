@@ -538,15 +538,14 @@ export function App() {
         </nav>
         <section className="canvas-area" aria-label="Artwork workspace">
           <div className="canvas-toolbar">
+            <TemplatePicker
+              value={doc.design.template}
+              disabled={busy}
+              onChange={(template) => void changeTemplate(template)}
+            />
             <nav className="panel-tabs" aria-label="Panel focus">
-              <TemplatePicker
-                value={doc.design.template}
-                disabled={busy}
-                onChange={(template) => void changeTemplate(template)}
-              />
               {!previewOpen && (
                 <>
-                  <span className="panel-type-divider" aria-hidden />
                   {[
                     ["all", "Whole sheet"],
                     ...Object.keys(definition.panels).map((id) => [
