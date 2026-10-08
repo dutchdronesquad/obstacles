@@ -108,7 +108,7 @@ p {
 }
 .app {
   height: 100dvh;
-  min-height: 480px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -171,6 +171,9 @@ a.app-version:focus-visible {
   font-size: 11px;
   color: var(--muted);
 }
+.canvas-toolbar > .template-picker {
+  margin-left: 14px;
+}
 .template-picker {
   position: relative;
   flex: 0 0 200px;
@@ -195,13 +198,6 @@ a.app-version:focus-visible {
   width: 29px;
   height: 32px;
   object-fit: contain;
-}
-.panel-type-divider {
-  height: 24px;
-  width: 1px;
-  flex-shrink: 0;
-  margin: 0 7px;
-  background: var(--border);
 }
 .select-option-icon {
   width: 36px;
@@ -1294,5 +1290,160 @@ kbd {
   }
   .preview-note {
     font-size: 9px;
+  }
+}
+
+/* Keep tablet and landscape-phone actions comfortable to tap. */
+@media (max-width: 900px) {
+  .header-actions .icon-button,
+  .header-actions .with-text,
+  .header-actions .download,
+  .inspector .icon-button,
+  .zoom-controls .icon-button,
+  .status-bar > .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .view-switch button,
+  .panel-tab,
+  .select-trigger {
+    min-height: 44px;
+  }
+}
+
+/* Keep mobile controls reachable without sacrificing the artwork viewport. */
+@media (max-width: 600px) {
+  .app-header {
+    gap: 8px;
+    padding-inline: max(8px, env(safe-area-inset-left))
+      max(8px, env(safe-area-inset-right));
+  }
+  .brand {
+    min-width: 0;
+    flex-shrink: 1;
+  }
+  .brand img {
+    max-width: 100%;
+  }
+  .header-actions {
+    flex-shrink: 0;
+    gap: 0;
+  }
+  .header-actions .icon-button,
+  .header-actions .with-text,
+  .header-actions .download {
+    width: 44px;
+    height: 44px;
+  }
+  .canvas-toolbar {
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px;
+    padding-top: 4px;
+  }
+  .canvas-toolbar > .template-picker {
+    margin-left: 8px;
+    flex: 1 1 120px;
+    min-width: 0;
+  }
+  .select-rich .select-trigger {
+    height: 44px;
+    font-size: 12px;
+  }
+  .view-switch {
+    margin: 0 8px 0 0;
+  }
+  .view-switch button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .panel-tabs {
+    order: 1;
+    flex: 0 0 100%;
+    height: 48px;
+    gap: 4px;
+  }
+  .panel-tabs:empty {
+    display: none;
+  }
+  .panel-tab {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .tool-rail {
+    width: 64px;
+  }
+  .tool {
+    min-width: 44px;
+    font-size: 10px;
+  }
+  .status-bar {
+    height: auto;
+    min-height: 56px;
+    padding-bottom: env(safe-area-inset-bottom);
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .zoom-controls .icon-button,
+  .status-bar > .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+  .status-bar .checkbox {
+    min-height: 44px;
+    padding-inline: 4px;
+  }
+  .status-bar .app-version {
+    max-width: 52px;
+  }
+  .inspector {
+    inset: auto 0 0;
+    width: 100%;
+    height: min(72dvh, 640px);
+    max-height: calc(100dvh - 60px);
+    border: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 14px 14px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -4px 25px #1f3d5420;
+  }
+  .drawer-backdrop {
+    inset: 60px 0 0;
+  }
+  .inspector-heading {
+    height: 52px;
+  }
+  .inspector .icon-button,
+  .layer .icon-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .field input,
+  .selected-object input,
+  .document-title input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .paint-field,
+  .link-dimensions,
+  .inspector .checkbox,
+  .subtle-button,
+  .point-actions button {
+    min-height: 44px;
+  }
+  .paint-field input[type="color"] {
+    width: 32px;
+    height: 32px;
+  }
+  .preview-heading {
+    flex-wrap: wrap;
+  }
+  .preview-heading button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .preview-angles {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 }

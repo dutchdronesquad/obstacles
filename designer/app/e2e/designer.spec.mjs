@@ -1122,10 +1122,18 @@ test("layer previews, multi-selection and per-layer actions preserve artwork", a
         .innerText(),
       "Opening frame",
     );
+    if (viewport.width < 900)
+      await page
+        .getByRole("button", { name: "Close properties", exact: true })
+        .click();
     await page.getByRole("checkbox", { name: "Guides", exact: true }).uncheck();
     const result = await download(page);
     assert.deepEqual(result.design, original);
     await checkDownload(result);
+    if (viewport.width < 900)
+      await page
+        .getByRole("button", { name: "Properties", exact: true })
+        .click();
     await options.click();
     await page.getByRole("menuitem", { name: "Delete", exact: true }).click();
     await page.waitForFunction(
@@ -1446,7 +1454,8 @@ test("shared controls restore focus and keep typing and menus separate from canv
           ).height,
       ),
     );
-    assert.deepEqual(heights, [32, 32, 32]);
+    const targetHeight = viewport.width < 900 ? 44 : 32;
+    assert.deepEqual(heights, [targetHeight, targetHeight, targetHeight]);
     const rectangle = page.getByRole("button", {
       name: "Rectangle (R)",
       exact: true,
@@ -1642,3 +1651,54 @@ for (const viewport of [
     );
   });
 }
+
+test("mobile controls fit narrow and landscape screens and Properties stays scrollable", async (t) => {
+  for (const viewport of [
+    { width: 320, height: 740 },
+    { width: 390, height: 844 },
+    { width: 844, height: 390 },
+  ]) {
+    const page = await openPage(t, viewport);
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth > innerWidth,
+      ),
+      false,
+    );
+    const footer = await page.locator(".status-bar").boundingBox();
+    assert.ok(footer.y + footer.height <= viewport.height);
+    assert.ok(
+      await page
+        .getByRole("button", { name: "Download SVG", exact: true })
+        .evaluate((element) => element.getBoundingClientRect().width >= 44),
+    );
+    await page.getByRole("button", { name: "Top panel", exact: true }).click();
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Top panel", exact: true })
+        .getAttribute("aria-pressed"),
+      "true",
+    );
+    await page.getByRole("button", { name: "Properties", exact: true }).click();
+    if (viewport.width <= 600) {
+      const drawer = await page.locator(".inspector").boundingBox();
+      assert.equal(drawer.x, 0);
+      assert.equal(drawer.width, viewport.width);
+      assert.equal(drawer.y + drawer.height, viewport.height);
+      const name = page.getByRole("textbox", {
+        name: "Sheet name",
+        exact: true,
+      });
+      await name.fill("Mobile artwork");
+      assert.equal(
+        await name.evaluate((element) => getComputedStyle(element).fontSize),
+        "16px",
+      );
+      assert.equal(await name.inputValue(), "Mobile artwork");
+    }
+    await page
+      .getByRole("button", { name: "Close properties", exact: true })
+      .click();
+    await page.getByRole("checkbox", { name: "Guides", exact: true }).uncheck();
+  }
+});
